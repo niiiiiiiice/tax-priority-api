@@ -73,9 +73,21 @@ dev:
 		$$GOPATH/bin/air; \
 	fi
 
+# Разработка для Windows (запуск с автоперезагрузкой)
+dev-win:
+	@echo "Starting development server on Windows..."
+	@echo "Make sure PostgreSQL is running on localhost:5432"
+	@echo "Database: tax_priority, User: postgres, Password: postgres"
+	@set DB_HOST=localhost& set DB_PORT=5432& set DB_USER=postgres& set DB_PASSWORD=postgres& set DB_NAME=tax_priority& set DB_SSLMODE=disable& set PORT=8081& air
+
 # Установка инструментов для разработки
 install-tools:
 	go install github.com/air-verse/air@latest
+	go install github.com/swaggo/swag/cmd/swag@latest
+
+# Генерация Swagger документации
+swagger:
+	swag init -g cmd/main.go -o docs --parseDependency
 
 # Проверка всего
 check: fmt vet test
@@ -96,7 +108,9 @@ help:
 	@echo "  docker-stop  - Stop Docker Compose"
 	@echo "  docker-clean - Clean Docker containers and images"
 	@echo "  dev          - Start development server with auto-reload (requires PostgreSQL)"
+	@echo "  dev-win      - Start development server on Windows with auto-reload"
 	@echo "  install-tools- Install development tools"
+	@echo "  swagger      - Generate Swagger documentation"
 	@echo "  check        - Run all checks (fmt, vet, test)"
 	@echo "  help         - Show this help"
 	@echo ""
@@ -106,4 +120,9 @@ help:
 	@echo "For local development:"
 	@echo "  1. Start PostgreSQL locally"
 	@echo "  2. Create database 'tax_priority'"
-	@echo "  3. make run-local or make dev" 
+	@echo "  3. make run-local or make dev"
+	@echo ""
+	@echo "For Windows development:"
+	@echo "  1. Start PostgreSQL locally"
+	@echo "  2. Create database 'tax_priority'"
+	@echo "  3. Run start-dev.bat or make dev-win" 

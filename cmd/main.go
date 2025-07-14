@@ -4,25 +4,43 @@ import (
 	"log"
 	"os"
 
-	"tax-priority-api/src/database"
-	"tax-priority-api/src/routes"
+	_ "tax-priority-api/docs" // Swagger docs
+	"tax-priority-api/src/infrastructure/persistence"
+	"tax-priority-api/src/presentation/router"
 )
 
+// @title Tax Priority API
+// @version 1.0
+// @description REST API для управления FAQ в системе Tax Priority
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8081
+// @BasePath /
+// @schemes http https
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 func main() {
-	// Инициализация базы данных
-	database.InitDatabase()
+	persistence.Connect(persistence.NewDatabaseConfig())
 
-	// Настройка маршрутов
-	router := routes.SetupRoutes()
+	r := router.SetupRouter()
 
-	// Получаем порт из переменной окружения или используем 8080 по умолчанию
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8081"
 	}
 
 	log.Printf("Server starting on port %s", port)
-	if err := router.Run(":" + port); err != nil {
+	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"log"
 	"tax-priority-api/src/infrastructure/persistence"
 	"tax-priority-api/src/infrastructure/persistence/models"
-	"tax-priority-api/src/infrastructure/wire"
 	"tax-priority-api/src/presentation/handlers"
+	"tax-priority-api/src/wire"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

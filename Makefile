@@ -92,7 +92,7 @@ swagger:
 
 # Генерация Wire кода для dependency injection
 wire:
-	wire ./src/infrastructure/wire
+	wire ./src/wire
 
 # Проверка всего
 check: fmt vet test

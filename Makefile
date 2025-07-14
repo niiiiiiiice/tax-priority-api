@@ -3,7 +3,7 @@
 # Переменные
 BINARY_NAME=tax-priority-api
 DOCKER_IMAGE=tax-priority-api
-GO_VERSION=1.21
+GO_VERSION=1.24.5
 
 # Сборка приложения
 build:

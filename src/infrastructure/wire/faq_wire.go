@@ -15,6 +15,7 @@ import (
 // FAQProviderSet набор провайдеров для FAQ
 var FAQProviderSet = wire.NewSet(
 	// Repository
+	CreateFAQGenericRepository,
 	infraRepos.NewFAQRepository,
 
 	// Application handlers aggregators

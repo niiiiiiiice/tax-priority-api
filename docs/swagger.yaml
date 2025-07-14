@@ -108,21 +108,6 @@ definitions:
         example: 10
         type: integer
     type: object
-  tax-priority-api_src_application_faq_commands.BatchCommandResult:
-    properties:
-      errors:
-        items:
-          type: string
-        type: array
-      failureCount:
-        type: integer
-      results:
-        items:
-          $ref: '#/definitions/tax-priority-api_src_application_faq_commands.CommandResult'
-        type: array
-      successCount:
-        type: integer
-    type: object
   tax-priority-api_src_application_faq_commands.BulkDeleteFAQCommand:
     properties:
       ids:
@@ -132,21 +117,6 @@ definitions:
         type: array
     required:
     - ids
-    type: object
-  tax-priority-api_src_application_faq_commands.CommandResult:
-    properties:
-      createdAt:
-        type: string
-      error:
-        type: string
-      id:
-        type: string
-      message:
-        type: string
-      success:
-        type: boolean
-      updatedAt:
-        type: string
     type: object
   tax-priority-api_src_application_faq_commands.UpdateFAQCommand:
     properties:
@@ -184,14 +154,44 @@ definitions:
     required:
     - id
     type: object
-  tax-priority-api_src_application_faq_queries.CategoryResponse:
+  tax-priority-api_src_application_faq_dtos.BatchCommandResult:
+    properties:
+      errors:
+        items:
+          type: string
+        type: array
+      failureCount:
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
+        type: array
+      successCount:
+        type: integer
+    type: object
+  tax-priority-api_src_application_faq_dtos.CategoryResponse:
     properties:
       count:
         type: integer
       name:
         type: string
     type: object
-  tax-priority-api_src_application_faq_queries.FAQResponse:
+  tax-priority-api_src_application_faq_dtos.CommandResult:
+    properties:
+      createdAt:
+        type: string
+      error:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+      updatedAt:
+        type: string
+    type: object
+  tax-priority-api_src_application_faq_dtos.FAQResponse:
     properties:
       answer:
         type: string
@@ -331,7 +331,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_commands.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
         "404":
           description: Not Found
           schema:
@@ -391,7 +391,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_commands.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
         "400":
           description: Bad Request
           schema:
@@ -422,7 +422,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_commands.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
         "400":
           description: Bad Request
           schema:
@@ -453,7 +453,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_commands.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
         "400":
           description: Bad Request
           schema:
@@ -492,7 +492,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_commands.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
         "400":
           description: Bad Request
           schema:
@@ -527,7 +527,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_queries.FAQResponse'
+              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse'
             type: array
         "400":
           description: Bad Request
@@ -558,7 +558,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_commands.BatchCommandResult'
+            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.BatchCommandResult'
         "400":
           description: Bad Request
           schema:
@@ -586,7 +586,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_queries.CategoryResponse'
+              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CategoryResponse'
             type: array
         "500":
           description: Internal Server Error
@@ -639,7 +639,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_queries.FAQResponse'
+              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse'
             type: array
         "400":
           description: Bad Request
@@ -726,7 +726,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_queries.FAQResponse'
+              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse'
             type: array
         "400":
           description: Bad Request

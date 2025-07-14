@@ -1,10 +1,11 @@
-package persistence
+package repositories
 
 import (
 	"context"
 	"fmt"
 	"reflect"
-	basePersistence "tax-priority-api/src/application/persistence"
+	"strings"
+	"tax-priority-api/src/application/repositories"
 	sharedModels "tax-priority-api/src/application/shared/models"
 	"tax-priority-api/src/domain/entities"
 	persistence "tax-priority-api/src/infrastructure/persistence"
@@ -18,30 +19,27 @@ import (
 // T - domain entity, M - GORM model, ID - тип идентификатора
 // domainToModel: функция преобразования domain -> model
 // modelToDomain: функция преобразования model -> domain
-
-type GenericGormRepository[T entities.Entity[ID], M any, ID comparable] struct {
+type GenericRepositoryImpl[T entities.Entity[ID], M any, ID comparable] struct {
 	db            *gorm.DB
 	domainToModel func(T) *M
 	modelToDomain func(*M) T
 }
 
-func NewGenericGormRepository[T entities.Entity[ID], M any, ID comparable](
+func NewGenericRepository[T entities.Entity[ID], M any, ID comparable](
 	db *gorm.DB,
 	domainToModel func(T) *M,
 	modelToDomain func(*M) T,
-) *GenericGormRepository[T, M, ID] {
-	return &GenericGormRepository[T, M, ID]{
+) repositories.GenericRepository[T, ID] {
+	return &GenericRepositoryImpl[T, M, ID]{
 		db:            db,
 		domainToModel: domainToModel,
 		modelToDomain: modelToDomain,
 	}
 }
 
-// Create создает новую сущность
-func (r *GenericGormRepository[T, M, ID]) Create(ctx context.Context, entity T) error {
+func (r *GenericRepositoryImpl[T, M, ID]) Create(ctx context.Context, entity T) error {
 	model := r.domainToModel(entity)
 
-	// Устанавливаем временные метки
 	now := time.Now()
 	entity.SetCreatedAt(now)
 	entity.SetUpdatedAt(now)
@@ -54,8 +52,7 @@ func (r *GenericGormRepository[T, M, ID]) Create(ctx context.Context, entity T) 
 	return nil
 }
 
-// CreateBatch создает несколько сущностей
-func (r *GenericGormRepository[T, M, ID]) CreateBatch(ctx context.Context, entities []T) (*sharedModels.BulkOperationResult, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) CreateBatch(ctx context.Context, entities []T) (*sharedModels.BulkOperationResult, error) {
 	if len(entities) == 0 {
 		return &sharedModels.BulkOperationResult{SuccessCount: 0, FailureCount: 0}, nil
 	}
@@ -85,8 +82,7 @@ func (r *GenericGormRepository[T, M, ID]) CreateBatch(ctx context.Context, entit
 	}, nil
 }
 
-// FindByID находит сущность по ID
-func (r *GenericGormRepository[T, M, ID]) FindByID(ctx context.Context, id ID) (T, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) FindByID(ctx context.Context, id ID) (T, error) {
 	var model M
 	var zero T
 
@@ -102,8 +98,7 @@ func (r *GenericGormRepository[T, M, ID]) FindByID(ctx context.Context, id ID) (
 	return entity, nil
 }
 
-// FindByIDs находит сущности по списку ID
-func (r *GenericGormRepository[T, M, ID]) FindByIDs(ctx context.Context, ids []ID) ([]T, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) FindByIDs(ctx context.Context, ids []ID) ([]T, error) {
 	if len(ids) == 0 {
 		return []T{}, nil
 	}
@@ -122,8 +117,7 @@ func (r *GenericGormRepository[T, M, ID]) FindByIDs(ctx context.Context, ids []I
 	return entities, nil
 }
 
-// Update обновляет сущность
-func (r *GenericGormRepository[T, M, ID]) Update(ctx context.Context, entity T) error {
+func (r *GenericRepositoryImpl[T, M, ID]) Update(ctx context.Context, entity T) error {
 	model := r.domainToModel(entity)
 	entity.SetUpdatedAt(time.Now())
 
@@ -135,8 +129,7 @@ func (r *GenericGormRepository[T, M, ID]) Update(ctx context.Context, entity T) 
 	return nil
 }
 
-// UpdateBatch обновляет несколько сущностей
-func (r *GenericGormRepository[T, M, ID]) UpdateBatch(ctx context.Context, entities []T) (*sharedModels.BulkOperationResult, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) UpdateBatch(ctx context.Context, entities []T) (*sharedModels.BulkOperationResult, error) {
 	if len(entities) == 0 {
 		return &sharedModels.BulkOperationResult{SuccessCount: 0, FailureCount: 0}, nil
 	}
@@ -164,8 +157,7 @@ func (r *GenericGormRepository[T, M, ID]) UpdateBatch(ctx context.Context, entit
 	}, nil
 }
 
-// UpdateFields обновляет только указанные поля
-func (r *GenericGormRepository[T, M, ID]) UpdateFields(ctx context.Context, id ID, fields map[string]interface{}) error {
+func (r *GenericRepositoryImpl[T, M, ID]) UpdateFields(ctx context.Context, id ID, fields map[string]interface{}) error {
 	fields["updated_at"] = time.Now()
 
 	result := r.db.WithContext(ctx).Model(new(M)).Where("id = ?", id).Updates(fields)
@@ -180,8 +172,7 @@ func (r *GenericGormRepository[T, M, ID]) UpdateFields(ctx context.Context, id I
 	return nil
 }
 
-// Delete удаляет сущность
-func (r *GenericGormRepository[T, M, ID]) Delete(ctx context.Context, id ID) error {
+func (r *GenericRepositoryImpl[T, M, ID]) Delete(ctx context.Context, id ID) error {
 	result := r.db.WithContext(ctx).Delete(new(M), "id = ?", id)
 	if result.Error != nil {
 		return persistence.NewInternalError("failed to delete entity", result.Error)
@@ -194,8 +185,7 @@ func (r *GenericGormRepository[T, M, ID]) Delete(ctx context.Context, id ID) err
 	return nil
 }
 
-// DeleteBatch удаляет несколько сущностей
-func (r *GenericGormRepository[T, M, ID]) DeleteBatch(ctx context.Context, ids []ID) (*sharedModels.BulkOperationResult, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) DeleteBatch(ctx context.Context, ids []ID) (*sharedModels.BulkOperationResult, error) {
 	if len(ids) == 0 {
 		return &sharedModels.BulkOperationResult{SuccessCount: 0, FailureCount: 0}, nil
 	}
@@ -215,8 +205,7 @@ func (r *GenericGormRepository[T, M, ID]) DeleteBatch(ctx context.Context, ids [
 	}, nil
 }
 
-// SoftDelete выполняет мягкое удаление
-func (r *GenericGormRepository[T, M, ID]) SoftDelete(ctx context.Context, id ID) error {
+func (r *GenericRepositoryImpl[T, M, ID]) SoftDelete(ctx context.Context, id ID) error {
 	result := r.db.WithContext(ctx).Model(new(M)).Where("id = ?", id).Update("deleted_at", time.Now())
 	if result.Error != nil {
 		return persistence.NewInternalError("failed to soft delete entity", result.Error)
@@ -229,8 +218,7 @@ func (r *GenericGormRepository[T, M, ID]) SoftDelete(ctx context.Context, id ID)
 	return nil
 }
 
-// FindAll находит все сущности с опциями
-func (r *GenericGormRepository[T, M, ID]) FindAll(ctx context.Context, opts *sharedModels.QueryOptions) ([]T, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) FindAll(ctx context.Context, opts *sharedModels.QueryOptions) ([]T, error) {
 	var models []M
 	query := r.db.WithContext(ctx)
 
@@ -258,8 +246,7 @@ func (r *GenericGormRepository[T, M, ID]) FindAll(ctx context.Context, opts *sha
 	return entities, nil
 }
 
-// FindOne находит одну сущность по фильтрам
-func (r *GenericGormRepository[T, M, ID]) FindOne(ctx context.Context, opts *sharedModels.QueryOptions) (T, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) FindOne(ctx context.Context, opts *sharedModels.QueryOptions) (T, error) {
 	var model M
 	var zero T
 
@@ -283,8 +270,7 @@ func (r *GenericGormRepository[T, M, ID]) FindOne(ctx context.Context, opts *sha
 	return entity, nil
 }
 
-// FindWithPagination находит сущности с пагинацией
-func (r *GenericGormRepository[T, M, ID]) FindWithPagination(ctx context.Context, opts *sharedModels.QueryOptions) (*sharedModels.PaginatedResult[T], error) {
+func (r *GenericRepositoryImpl[T, M, ID]) FindWithPagination(ctx context.Context, opts *sharedModels.QueryOptions) (*sharedModels.PaginatedResult[T], error) {
 	if opts == nil || opts.Pagination == nil {
 		return nil, persistence.NewInvalidInputError("pagination options are required", nil)
 	}
@@ -292,14 +278,12 @@ func (r *GenericGormRepository[T, M, ID]) FindWithPagination(ctx context.Context
 	var models []M
 	var total int64
 
-	// Подсчитываем общее количество
 	countQuery := r.db.WithContext(ctx).Model(new(M))
 	countQuery = r.applyFilters(countQuery, opts.Filters)
 	if err := countQuery.Count(&total).Error; err != nil {
 		return nil, persistence.NewInternalError("failed to count entities", err)
 	}
 
-	// Получаем данные
 	query := r.db.WithContext(ctx)
 	query = r.applyFilters(query, opts.Filters)
 	query = r.applySorting(query, opts.SortBy)
@@ -316,7 +300,6 @@ func (r *GenericGormRepository[T, M, ID]) FindWithPagination(ctx context.Context
 		entities[i] = r.modelToDomain(&model)
 	}
 
-	// Вычисляем пагинацию
 	totalPages := int((total + int64(opts.Pagination.Limit) - 1) / int64(opts.Pagination.Limit))
 	hasNext := opts.Pagination.Offset+opts.Pagination.Limit < int(total)
 	hasPrev := opts.Pagination.Offset > 0
@@ -332,8 +315,7 @@ func (r *GenericGormRepository[T, M, ID]) FindWithPagination(ctx context.Context
 	}, nil
 }
 
-// Count подсчитывает количество сущностей
-func (r *GenericGormRepository[T, M, ID]) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(new(M))
 
@@ -347,8 +329,7 @@ func (r *GenericGormRepository[T, M, ID]) Count(ctx context.Context, filters map
 	return count, nil
 }
 
-// Exists проверяет существование сущности по ID
-func (r *GenericGormRepository[T, M, ID]) Exists(ctx context.Context, id ID) (bool, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) Exists(ctx context.Context, id ID) (bool, error) {
 	var count int64
 	result := r.db.WithContext(ctx).Model(new(M)).Where("id = ?", id).Count(&count)
 	if result.Error != nil {
@@ -358,8 +339,7 @@ func (r *GenericGormRepository[T, M, ID]) Exists(ctx context.Context, id ID) (bo
 	return count > 0, nil
 }
 
-// ExistsByFields проверяет существование сущности по полям
-func (r *GenericGormRepository[T, M, ID]) ExistsByFields(ctx context.Context, filters map[string]interface{}) (bool, error) {
+func (r *GenericRepositoryImpl[T, M, ID]) ExistsByFields(ctx context.Context, filters map[string]interface{}) (bool, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(new(M))
 
@@ -373,25 +353,21 @@ func (r *GenericGormRepository[T, M, ID]) ExistsByFields(ctx context.Context, fi
 	return count > 0, nil
 }
 
-// WithTransaction выполняет функцию в транзакции
-func (r *GenericGormRepository[T, M, ID]) WithTransaction(ctx context.Context, fn basePersistence.TransactionFunc) error {
+func (r *GenericRepositoryImpl[T, M, ID]) WithTransaction(ctx context.Context, fn repositories.TransactionFunc) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Создаем новый репозиторий с транзакционной БД
-		txRepo := &GenericGormRepository[T, M, ID]{
+		txRepo := &GenericRepositoryImpl[T, M, ID]{
 			db:            tx,
 			domainToModel: r.domainToModel,
 			modelToDomain: r.modelToDomain,
 		}
 
-		// Создаем новый контекст с транзакционным репозиторием
 		txCtx := context.WithValue(ctx, "tx_repo", txRepo)
 
 		return fn(txCtx)
 	})
 }
 
-// Refresh обновляет сущность из базы данных
-func (r *GenericGormRepository[T, M, ID]) Refresh(ctx context.Context, entity T) error {
+func (r *GenericRepositoryImpl[T, M, ID]) Refresh(ctx context.Context, entity T) error {
 	id := entity.GetID()
 
 	freshEntity, err := r.FindByID(ctx, id)
@@ -399,14 +375,12 @@ func (r *GenericGormRepository[T, M, ID]) Refresh(ctx context.Context, entity T)
 		return err
 	}
 
-	// Копируем данные из свежей сущности
 	reflect.ValueOf(entity).Elem().Set(reflect.ValueOf(freshEntity).Elem())
 
 	return nil
 }
 
-// Clear удаляет все сущности (только для тестов)
-func (r *GenericGormRepository[T, M, ID]) Clear(ctx context.Context) error {
+func (r *GenericRepositoryImpl[T, M, ID]) Clear(ctx context.Context) error {
 	result := r.db.WithContext(ctx).Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(new(M))
 	if result.Error != nil {
 		return persistence.NewInternalError("failed to clear entities", result.Error)
@@ -415,35 +389,62 @@ func (r *GenericGormRepository[T, M, ID]) Clear(ctx context.Context) error {
 	return nil
 }
 
-// Вспомогательные методы для применения фильтров, сортировки и includes
+func (r *GenericRepositoryImpl[T, M, ID]) mapFieldToColumn(field string) string {
+	fieldMappings := map[string]string{
+		"createdAt": "created_at",
+		"updatedAt": "updated_at",
+		"isActive":  "is_active",
+	}
 
-func (r *GenericGormRepository[T, M, ID]) applyFilters(query *gorm.DB, filters map[string]interface{}) *gorm.DB {
+	if dbColumn, exists := fieldMappings[field]; exists {
+		return dbColumn
+	}
+
+	return r.camelToSnake(field)
+}
+
+func (r *GenericRepositoryImpl[T, M, ID]) camelToSnake(str string) string {
+	var result strings.Builder
+
+	for i, char := range str {
+		if i > 0 && char >= 'A' && char <= 'Z' {
+			result.WriteRune('_')
+		}
+		result.WriteRune(char)
+	}
+
+	return strings.ToLower(result.String())
+}
+
+func (r *GenericRepositoryImpl[T, M, ID]) applyFilters(query *gorm.DB, filters map[string]interface{}) *gorm.DB {
 	if filters == nil {
 		return query
 	}
 
 	for key, value := range filters {
 		if value != nil {
-			query = query.Where(key+" = ?", value)
+			dbColumn := r.mapFieldToColumn(key)
+			query = query.Where(dbColumn+" = ?", value)
 		}
 	}
 
 	return query
 }
 
-func (r *GenericGormRepository[T, M, ID]) applySorting(query *gorm.DB, sortBy []sharedModels.SortBy) *gorm.DB {
+func (r *GenericRepositoryImpl[T, M, ID]) applySorting(query *gorm.DB, sortBy []sharedModels.SortBy) *gorm.DB {
 	if sortBy == nil {
 		return query
 	}
 
 	for _, sort := range sortBy {
-		query = query.Order(clause.OrderByColumn{Column: clause.Column{Name: sort.Field}, Desc: sort.Order == sharedModels.DESC})
+		dbColumn := r.mapFieldToColumn(sort.Field)
+		query = query.Order(clause.OrderByColumn{Column: clause.Column{Name: dbColumn}, Desc: sort.Order == sharedModels.DESC})
 	}
 
 	return query
 }
 
-func (r *GenericGormRepository[T, M, ID]) applyIncludes(query *gorm.DB, includes []string) *gorm.DB {
+func (r *GenericRepositoryImpl[T, M, ID]) applyIncludes(query *gorm.DB, includes []string) *gorm.DB {
 	if includes == nil {
 		return query
 	}

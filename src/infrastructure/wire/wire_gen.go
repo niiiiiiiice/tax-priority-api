@@ -18,7 +18,8 @@ import (
 
 // InitializeFAQHTTPHandler инициализирует HTTP обработчик FAQ
 func InitializeFAQHTTPHandler(db *gorm.DB) *handlers.FAQHTTPHandler {
-	faqRepository := repositories.NewFAQRepository(db)
+	genericRepository := CreateFAQGenericRepository(db)
+	faqRepository := repositories.NewFAQRepository(genericRepository)
 	faqCommandHandlers := handlers2.NewFAQCommandHandlers(faqRepository)
 	faqQueryHandlers := handlers2.NewFAQQueryHandlers(faqRepository)
 	faqhttpHandler := handlers.NewFAQHTTPHandler(faqCommandHandlers, faqQueryHandlers)
@@ -28,4 +29,7 @@ func InitializeFAQHTTPHandler(db *gorm.DB) *handlers.FAQHTTPHandler {
 // faq_wire.go:
 
 // FAQProviderSet набор провайдеров для FAQ
-var FAQProviderSet = wire.NewSet(repositories.NewFAQRepository, handlers2.NewFAQCommandHandlers, handlers2.NewFAQQueryHandlers, handlers.NewFAQHTTPHandler)
+var FAQProviderSet = wire.NewSet(
+
+	CreateFAQGenericRepository, repositories.NewFAQRepository, handlers2.NewFAQCommandHandlers, handlers2.NewFAQQueryHandlers, handlers.NewFAQHTTPHandler,
+)

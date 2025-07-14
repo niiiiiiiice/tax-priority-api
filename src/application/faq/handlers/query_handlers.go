@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"tax-priority-api/src/application/faq/queries"
-	"tax-priority-api/src/domain/repositories"
+	"tax-priority-api/src/application/repositories"
 )
 
 type FAQQueryHandlers struct {

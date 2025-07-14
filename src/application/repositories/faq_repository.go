@@ -49,5 +49,5 @@ type FAQRepository interface {
 	GetCategoriesWithCounts(ctx context.Context) (map[string]int64, error)
 
 	// Транзакции
-	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+	WithTransaction(ctx context.Context, fn func(context.Context) error) error
 }

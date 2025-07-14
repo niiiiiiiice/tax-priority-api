@@ -153,7 +153,7 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 // @Produce json
 // @Param id path string true "ID FAQ"
 // @Param faq body commands.UpdateFAQCommand true "Данные для обновления"
-// @Success 200 {object} commands.CommandResult
+// @Success 200 {object} dtos.CommandResult
 // @Failure 400 {object} gin.H
 // @Failure 404 {object} gin.H
 // @Failure 500 {object} gin.H
@@ -192,7 +192,7 @@ func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Success 200 {object} commands.CommandResult
+// @Success 200 {object} dtos.CommandResult
 // @Failure 404 {object} gin.H
 // @Failure 500 {object} gin.H
 // @Router /api/faq/{id} [delete]
@@ -229,7 +229,7 @@ func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 // @Param _sort query string false "Поле сортировки" default(priority)
 // @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
 // @Param activeOnly query bool false "Только активные FAQ" default(false)
-// @Success 200 {array} queries.FAQResponse
+// @Success 200 {array} dtos.FAQResponse
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H
 // @Router /api/faq/category/{category} [get]
@@ -281,7 +281,7 @@ func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 // @Param _sort query string false "Поле сортировки" default(priority)
 // @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
 // @Param activeOnly query bool false "Только активные FAQ" default(false)
-// @Success 200 {array} queries.FAQResponse
+// @Success 200 {array} dtos.FAQResponse
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H
 // @Router /api/faq/search [get]
@@ -329,7 +329,7 @@ func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param withCounts query bool false "Включить количество FAQ в каждой категории" default(false)
-// @Success 200 {array} queries.CategoryResponse
+// @Success 200 {array} dtos.CategoryResponse
 // @Failure 500 {object} gin.H
 // @Router /api/faq/categories [get]
 func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
@@ -416,7 +416,7 @@ func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param ids body queries.GetFAQsByIDsQuery true "Список ID"
-// @Success 200 {array} queries.FAQResponse
+// @Success 200 {array} dtos.FAQResponse
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H
 // @Router /api/faq/batch [post]
@@ -448,7 +448,7 @@ func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param ids body commands.BulkDeleteFAQCommand true "Список ID для удаления"
-// @Success 200 {object} commands.BatchCommandResult
+// @Success 200 {object} dtos.BatchCommandResult
 // @Failure 400 {object} gin.H
 // @Failure 500 {object} gin.H
 // @Router /api/faq/bulk-delete [post]
@@ -474,7 +474,7 @@ func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Success 200 {object} commands.CommandResult
+// @Success 200 {object} dtos.CommandResult
 // @Failure 400 {object} gin.H
 // @Failure 404 {object} gin.H
 // @Failure 500 {object} gin.H
@@ -507,7 +507,7 @@ func (h *FAQHTTPHandler) ActivateFAQ(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Success 200 {object} commands.CommandResult
+// @Success 200 {object} dtos.CommandResult
 // @Failure 400 {object} gin.H
 // @Failure 404 {object} gin.H
 // @Failure 500 {object} gin.H
@@ -542,7 +542,7 @@ func (h *FAQHTTPHandler) DeactivateFAQ(c *gin.Context) {
 // @Produce json
 // @Param id path string true "ID FAQ"
 // @Param priority body commands.UpdateFAQPriorityCommand true "Новый приоритет"
-// @Success 200 {object} commands.CommandResult
+// @Success 200 {object} dtos.CommandResult
 // @Failure 400 {object} gin.H
 // @Failure 404 {object} gin.H
 // @Failure 500 {object} gin.H

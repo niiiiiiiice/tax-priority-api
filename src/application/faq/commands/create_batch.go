@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"tax-priority-api/src/application/faq/dtos"
+	"tax-priority-api/src/application/repositories"
 	"tax-priority-api/src/domain/entities"
-	"tax-priority-api/src/domain/repositories"
 
 	"github.com/google/uuid"
 )

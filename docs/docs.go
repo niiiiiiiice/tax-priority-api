@@ -176,7 +176,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/tax-priority-api_src_application_faq_queries.FAQResponse"
+                                "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse"
                             }
                         }
                     },
@@ -223,7 +223,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.BatchCommandResult"
+                            "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.BatchCommandResult"
                         }
                     },
                     "400": {
@@ -266,7 +266,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/tax-priority-api_src_application_faq_queries.CategoryResponse"
+                                "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CategoryResponse"
                             }
                         }
                     },
@@ -343,7 +343,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/tax-priority-api_src_application_faq_queries.FAQResponse"
+                                "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse"
                             }
                         }
                     },
@@ -472,7 +472,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/tax-priority-api_src_application_faq_queries.FAQResponse"
+                                "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse"
                             }
                         }
                     },
@@ -565,7 +565,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.CommandResult"
+                            "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult"
                         }
                     },
                     "400": {
@@ -610,7 +610,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.CommandResult"
+                            "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult"
                         }
                     },
                     "404": {
@@ -651,7 +651,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.CommandResult"
+                            "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult"
                         }
                     },
                     "400": {
@@ -698,7 +698,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.CommandResult"
+                            "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult"
                         }
                     },
                     "400": {
@@ -757,7 +757,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.CommandResult"
+                            "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult"
                         }
                     },
                     "400": {
@@ -930,29 +930,6 @@ const docTemplate = `{
                 }
             }
         },
-        "tax-priority-api_src_application_faq_commands.BatchCommandResult": {
-            "type": "object",
-            "properties": {
-                "errors": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "failureCount": {
-                    "type": "integer"
-                },
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tax-priority-api_src_application_faq_commands.CommandResult"
-                    }
-                },
-                "successCount": {
-                    "type": "integer"
-                }
-            }
-        },
         "tax-priority-api_src_application_faq_commands.BulkDeleteFAQCommand": {
             "type": "object",
             "required": [
@@ -965,29 +942,6 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "tax-priority-api_src_application_faq_commands.CommandResult": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "string"
-                },
-                "error": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                },
-                "updatedAt": {
-                    "type": "string"
                 }
             }
         },
@@ -1040,7 +994,30 @@ const docTemplate = `{
                 }
             }
         },
-        "tax-priority-api_src_application_faq_queries.CategoryResponse": {
+        "tax-priority-api_src_application_faq_dtos.BatchCommandResult": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "failureCount": {
+                    "type": "integer"
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult"
+                    }
+                },
+                "successCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tax-priority-api_src_application_faq_dtos.CategoryResponse": {
             "type": "object",
             "properties": {
                 "count": {
@@ -1051,7 +1028,30 @@ const docTemplate = `{
                 }
             }
         },
-        "tax-priority-api_src_application_faq_queries.FAQResponse": {
+        "tax-priority-api_src_application_faq_dtos.CommandResult": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "tax-priority-api_src_application_faq_dtos.FAQResponse": {
             "type": "object",
             "properties": {
                 "answer": {

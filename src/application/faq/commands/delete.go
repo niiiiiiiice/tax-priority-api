@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"tax-priority-api/src/application/faq/dtos"
-	"tax-priority-api/src/domain/repositories"
+	"tax-priority-api/src/application/repositories"
 )
 
 type DeleteFAQCommand struct {

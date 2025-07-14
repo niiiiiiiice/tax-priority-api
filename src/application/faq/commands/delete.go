@@ -15,6 +15,10 @@ type DeleteFAQCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewDeleteFAQCommandHandler(repo repositories.FAQRepository) *DeleteFAQCommandHandler {
+	return &DeleteFAQCommandHandler{faqRepo: repo}
+}
+
 func (h *DeleteFAQCommandHandler) HandleDeleteFAQ(ctx context.Context, cmd DeleteFAQCommand) (*dtos.CommandResult, error) {
 
 	exists, err := h.faqRepo.Exists(ctx, cmd.ID)

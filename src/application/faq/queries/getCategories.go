@@ -16,6 +16,10 @@ type GetFAQCategoriesQueryHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewGetFAQCategoriesQueryHandler(repo repositories.FAQRepository) *GetFAQCategoriesQueryHandler {
+	return &GetFAQCategoriesQueryHandler{faqRepo: repo}
+}
+
 func (h *GetFAQCategoriesQueryHandler) HandleGetFAQCategories(ctx context.Context, query GetFAQCategoriesQuery) (*dtos.QueryResult, error) {
 	if query.WithCounts {
 		categoryCounts, err := h.faqRepo.GetCategoriesWithCounts(ctx)

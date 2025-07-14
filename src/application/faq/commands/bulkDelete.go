@@ -15,6 +15,10 @@ type BulkDeleteFAQCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewBulkDeleteFAQCommandHandler(repo repositories.FAQRepository) *BulkDeleteFAQCommandHandler {
+	return &BulkDeleteFAQCommandHandler{faqRepo: repo}
+}
+
 func (h *BulkDeleteFAQCommandHandler) HandleBulkDeleteFAQ(ctx context.Context, cmd BulkDeleteFAQCommand) (*dtos.BatchCommandResult, error) {
 	result, err := h.faqRepo.DeleteBatch(ctx, cmd.IDs)
 	if err != nil {

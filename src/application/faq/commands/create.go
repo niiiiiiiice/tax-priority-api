@@ -21,6 +21,10 @@ type CreateFAQCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewCreateFAQCommandHandler(repo repositories.FAQRepository) *CreateFAQCommandHandler {
+	return &CreateFAQCommandHandler{faqRepo: repo}
+}
+
 func (h *CreateFAQCommandHandler) HandleCreateFAQ(ctx context.Context, cmd CreateFAQCommand) (*dtos.CommandResult, error) {
 
 	exists, err := h.faqRepo.ExistsByQuestion(ctx, cmd.Question)

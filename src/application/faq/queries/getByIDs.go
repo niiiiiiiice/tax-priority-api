@@ -16,6 +16,10 @@ type GetFAQsByIDsQueryHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewGetFAQsByIDsQueryHandler(repo repositories.FAQRepository) *GetFAQsByIDsQueryHandler {
+	return &GetFAQsByIDsQueryHandler{faqRepo: repo}
+}
+
 func (h *GetFAQsByIDsQueryHandler) HandleGetFAQsByIDs(ctx context.Context, query GetFAQsByIDsQuery) (*dtos.QueryResult, error) {
 	faqs, err := h.faqRepo.FindByIDs(ctx, query.IDs)
 	if err != nil {

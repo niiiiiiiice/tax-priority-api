@@ -84,10 +84,15 @@ dev-win:
 install-tools:
 	go install github.com/air-verse/air@latest
 	go install github.com/swaggo/swag/cmd/swag@latest
+	go install github.com/google/wire/cmd/wire@latest
 
 # Генерация Swagger документации
 swagger:
 	swag init -g cmd/main.go -o docs --parseDependency
+
+# Генерация Wire кода для dependency injection
+wire:
+	wire ./src/infrastructure/wire
 
 # Проверка всего
 check: fmt vet test
@@ -111,6 +116,7 @@ help:
 	@echo "  dev-win      - Start development server on Windows with auto-reload"
 	@echo "  install-tools- Install development tools"
 	@echo "  swagger      - Generate Swagger documentation"
+	@echo "  wire         - Generate Wire dependency injection code"
 	@echo "  check        - Run all checks (fmt, vet, test)"
 	@echo "  help         - Show this help"
 	@echo ""

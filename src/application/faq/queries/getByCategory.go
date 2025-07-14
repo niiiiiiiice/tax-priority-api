@@ -23,6 +23,10 @@ type GetFAQsByCategoryQueryHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewGetFAQsByCategoryQueryHandler(repo repositories.FAQRepository) *GetFAQsByCategoryQueryHandler {
+	return &GetFAQsByCategoryQueryHandler{faqRepo: repo}
+}
+
 func (h *GetFAQsByCategoryQueryHandler) HandleGetFAQsByCategory(ctx context.Context, query GetFAQsByCategoryQuery) (*dtos.QueryResult, error) {
 	if query.Limit == 0 {
 		query.Limit = 10

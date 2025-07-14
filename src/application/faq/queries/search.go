@@ -24,6 +24,10 @@ type SearchFAQsQueryHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewSearchFAQsQueryHandler(repo repositories.FAQRepository) *SearchFAQsQueryHandler {
+	return &SearchFAQsQueryHandler{faqRepo: repo}
+}
+
 func (h *SearchFAQsQueryHandler) HandleSearchFAQs(ctx context.Context, query SearchFAQsQuery) (*dtos.QueryResult, error) {
 	if query.Limit == 0 {
 		query.Limit = 10

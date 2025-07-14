@@ -15,6 +15,10 @@ type ActivateFAQCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewActivateFAQCommandHandler(repo repositories.FAQRepository) *ActivateFAQCommandHandler {
+	return &ActivateFAQCommandHandler{faqRepo: repo}
+}
+
 func (h *ActivateFAQCommandHandler) HandleActivateFAQ(ctx context.Context, cmd ActivateFAQCommand) (*dtos.CommandResult, error) {
 
 	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)

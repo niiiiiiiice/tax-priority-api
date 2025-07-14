@@ -16,6 +16,10 @@ type UpdateFAQPriorityCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewUpdateFAQPriorityCommandHandler(repo repositories.FAQRepository) *UpdateFAQPriorityCommandHandler {
+	return &UpdateFAQPriorityCommandHandler{faqRepo: repo}
+}
+
 func (h *UpdateFAQPriorityCommandHandler) HandleUpdateFAQPriority(ctx context.Context, cmd UpdateFAQPriorityCommand) (*dtos.CommandResult, error) {
 
 	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)

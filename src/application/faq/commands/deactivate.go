@@ -15,6 +15,10 @@ type DeactivateFAQCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewDeactivateFAQCommandHandler(repo repositories.FAQRepository) *DeactivateFAQCommandHandler {
+	return &DeactivateFAQCommandHandler{faqRepo: repo}
+}
+
 func (h *DeactivateFAQCommandHandler) HandleDeactivateFAQ(ctx context.Context, cmd DeactivateFAQCommand) (*dtos.CommandResult, error) {
 
 	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)

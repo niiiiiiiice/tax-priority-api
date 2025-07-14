@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"tax-priority-api/src/application/faq/commands"
+	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/faq/handlers"
 	"tax-priority-api/src/application/faq/queries"
 
@@ -13,15 +14,15 @@ import (
 
 // FAQHTTPHandler HTTP обработчик для FAQ
 type FAQHTTPHandler struct {
-	commandHandler *handlers.FAQCommandHandler
-	queryHandler   *handlers.FAQQueryHandler
+	commandHandlers *handlers.FAQCommandHandlers
+	queryHandlers   *handlers.FAQQueryHandlers
 }
 
 // NewFAQHTTPHandler создает новый HTTP обработчик FAQ
-func NewFAQHTTPHandler(commandHandler *handlers.FAQCommandHandler, queryHandler *handlers.FAQQueryHandler) *FAQHTTPHandler {
+func NewFAQHTTPHandler(commandHandlers *handlers.FAQCommandHandlers, queryHandlers *handlers.FAQQueryHandlers) *FAQHTTPHandler {
 	return &FAQHTTPHandler{
-		commandHandler: commandHandler,
-		queryHandler:   queryHandler,
+		commandHandlers: commandHandlers,
+		queryHandlers:   queryHandlers,
 	}
 }
 
@@ -43,7 +44,7 @@ func (h *FAQHTTPHandler) CreateFAQ(c *gin.Context) {
 		return
 	}
 
-	result, err := h.commandHandler.HandleCreateFAQ(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.Create.HandleCreateFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -75,7 +76,7 @@ func (h *FAQHTTPHandler) GetFAQ(c *gin.Context) {
 	}
 
 	query := queries.GetFAQByIDQuery{ID: id}
-	result, err := h.queryHandler.HandleGetFAQByID(c.Request.Context(), query)
+	result, err := h.queryHandlers.GetByID.HandleGetFAQByID(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -86,7 +87,7 @@ func (h *FAQHTTPHandler) GetFAQ(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, queries.ToFAQResponse(result.FAQ))
+	c.JSON(http.StatusOK, dtos.ToFAQResponse(result.FAQ))
 }
 
 // GetFAQs получает список FAQ
@@ -130,7 +131,7 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 		Filters:   filters,
 	}
 
-	result, err := h.queryHandler.HandleGetFAQs(c.Request.Context(), query)
+	result, err := h.queryHandlers.GetMany.HandleGetFAQs(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -141,7 +142,7 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, queries.ToPaginatedFAQResponse(result.Paginated))
+	c.JSON(http.StatusOK, dtos.ToPaginatedFAQResponse(result.Paginated))
 }
 
 // UpdateFAQ обновляет FAQ
@@ -171,7 +172,7 @@ func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 	}
 
 	cmd.ID = id
-	result, err := h.commandHandler.HandleUpdateFAQ(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.Update.HandleUpdateFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -203,7 +204,7 @@ func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 	}
 
 	cmd := commands.DeleteFAQCommand{ID: id}
-	result, err := h.commandHandler.HandleDeleteFAQ(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.Delete.HandleDeleteFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -254,7 +255,7 @@ func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 		ActiveOnly: activeOnly,
 	}
 
-	result, err := h.queryHandler.HandleGetFAQsByCategory(c.Request.Context(), query)
+	result, err := h.queryHandlers.GetByCategory.HandleGetFAQsByCategory(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -265,7 +266,7 @@ func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, queries.ToFAQResponses(result.FAQs))
+	c.JSON(http.StatusOK, dtos.ToFAQResponses(result.FAQs))
 }
 
 // SearchFAQs поиск FAQ
@@ -308,7 +309,7 @@ func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 		ActiveOnly: activeOnly,
 	}
 
-	result, err := h.queryHandler.HandleSearchFAQs(c.Request.Context(), query)
+	result, err := h.queryHandlers.Search.HandleSearchFAQs(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -319,7 +320,7 @@ func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, queries.ToFAQResponses(result.FAQs))
+	c.JSON(http.StatusOK, dtos.ToFAQResponses(result.FAQs))
 }
 
 // GetFAQCategories получает категории FAQ
@@ -338,7 +339,7 @@ func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
 		WithCounts: withCounts,
 	}
 
-	result, err := h.queryHandler.HandleGetFAQCategories(c.Request.Context(), query)
+	result, err := h.queryHandlers.GetCategories.HandleGetFAQCategories(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -350,18 +351,18 @@ func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
 	}
 
 	if withCounts {
-		var categories []queries.CategoryResponse
+		var categories []dtos.CategoryResponse
 		for name, count := range result.CategoryCounts {
-			categories = append(categories, queries.CategoryResponse{
+			categories = append(categories, dtos.CategoryResponse{
 				Name:  name,
 				Count: count,
 			})
 		}
 		c.JSON(http.StatusOK, categories)
 	} else {
-		var categories []queries.CategoryResponse
+		var categories []dtos.CategoryResponse
 		for _, name := range result.Categories {
-			categories = append(categories, queries.CategoryResponse{
+			categories = append(categories, dtos.CategoryResponse{
 				Name: name,
 			})
 		}
@@ -394,7 +395,7 @@ func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
 		Filters: filters,
 	}
 
-	result, err := h.queryHandler.HandleGetFAQCount(c.Request.Context(), query)
+	result, err := h.queryHandlers.GetCount.HandleGetFAQCount(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -426,7 +427,7 @@ func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
 		return
 	}
 
-	result, err := h.queryHandler.HandleGetFAQsByIDs(c.Request.Context(), query)
+	result, err := h.queryHandlers.GetByIDs.HandleGetFAQsByIDs(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -437,7 +438,7 @@ func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, queries.ToFAQResponses(result.FAQs))
+	c.JSON(http.StatusOK, dtos.ToFAQResponses(result.FAQs))
 }
 
 // BulkDeleteFAQs массовое удаление FAQ
@@ -458,7 +459,7 @@ func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
 		return
 	}
 
-	result, err := h.commandHandler.HandleBulkDeleteFAQ(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.BulkDelete.HandleBulkDeleteFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -486,7 +487,7 @@ func (h *FAQHTTPHandler) ActivateFAQ(c *gin.Context) {
 	}
 
 	cmd := commands.ActivateFAQCommand{ID: id}
-	result, err := h.commandHandler.HandleActivateFAQ(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.Activate.HandleActivateFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -519,7 +520,7 @@ func (h *FAQHTTPHandler) DeactivateFAQ(c *gin.Context) {
 	}
 
 	cmd := commands.DeactivateFAQCommand{ID: id}
-	result, err := h.commandHandler.HandleDeactivateFAQ(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.Deactivate.HandleDeactivateFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -560,7 +561,7 @@ func (h *FAQHTTPHandler) UpdateFAQPriority(c *gin.Context) {
 	}
 
 	cmd.ID = id
-	result, err := h.commandHandler.HandleUpdateFAQPriority(c.Request.Context(), cmd)
+	result, err := h.commandHandlers.UpdatePriority.HandleUpdateFAQPriority(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

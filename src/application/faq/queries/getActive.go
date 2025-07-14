@@ -21,6 +21,10 @@ type GetActiveFAQsQueryHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewGetActiveFAQsQueryHandler(repo repositories.FAQRepository) *GetActiveFAQsQueryHandler {
+	return &GetActiveFAQsQueryHandler{faqRepo: repo}
+}
+
 func (h *GetActiveFAQsQueryHandler) HandleGetActiveFAQs(ctx context.Context, query GetActiveFAQsQuery) (*dtos.QueryResult, error) {
 	if query.Limit == 0 {
 		query.Limit = 10

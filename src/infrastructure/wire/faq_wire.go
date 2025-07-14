@@ -17,9 +17,9 @@ var FAQProviderSet = wire.NewSet(
 	// Repository
 	infraRepos.NewFAQRepository,
 
-	// Application handlers
-	appHandlers.NewFAQCommandHandler,
-	appHandlers.NewFAQQueryHandler,
+	// Application handlers aggregators
+	appHandlers.NewFAQCommandHandlers,
+	appHandlers.NewFAQQueryHandlers,
 
 	// HTTP handler
 	httpHandlers.NewFAQHTTPHandler,
@@ -29,22 +29,4 @@ var FAQProviderSet = wire.NewSet(
 func InitializeFAQHTTPHandler(db *gorm.DB) *httpHandlers.FAQHTTPHandler {
 	wire.Build(FAQProviderSet)
 	return &httpHandlers.FAQHTTPHandler{}
-}
-
-// InitializeFAQCommandHandler инициализирует обработчик команд FAQ
-func InitializeFAQCommandHandler(db *gorm.DB) *appHandlers.FAQCommandHandler {
-	wire.Build(
-		infraRepos.NewFAQRepository,
-		appHandlers.NewFAQCommandHandler,
-	)
-	return &appHandlers.FAQCommandHandler{}
-}
-
-// InitializeFAQQueryHandler инициализирует обработчик запросов FAQ
-func InitializeFAQQueryHandler(db *gorm.DB) *appHandlers.FAQQueryHandler {
-	wire.Build(
-		infraRepos.NewFAQRepository,
-		appHandlers.NewFAQQueryHandler,
-	)
-	return &appHandlers.FAQQueryHandler{}
 }

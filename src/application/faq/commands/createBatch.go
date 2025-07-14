@@ -18,6 +18,10 @@ type CreateFAQBatchCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewCreateFAQBatchCommandHandler(repo repositories.FAQRepository) *CreateFAQBatchCommandHandler {
+	return &CreateFAQBatchCommandHandler{faqRepo: repo}
+}
+
 func (h *CreateFAQBatchCommandHandler) HandleCreateFAQBatch(ctx context.Context, cmd CreateFAQBatchCommand) (*dtos.BatchCommandResult, error) {
 	results := make([]dtos.CommandResult, 0, len(cmd.FAQs))
 	faqs := make([]*entities.FAQ, 0, len(cmd.FAQs))

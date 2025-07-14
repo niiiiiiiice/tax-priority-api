@@ -22,6 +22,10 @@ type GetFAQsByPriorityQueryHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewGetFAQsByPriorityQueryHandler(repo repositories.FAQRepository) *GetFAQsByPriorityQueryHandler {
+	return &GetFAQsByPriorityQueryHandler{faqRepo: repo}
+}
+
 func (h *GetFAQsByPriorityQueryHandler) HandleGetFAQsByPriority(ctx context.Context, query GetFAQsByPriorityQuery) (*dtos.QueryResult, error) {
 	if query.Limit == 0 {
 		query.Limit = 10

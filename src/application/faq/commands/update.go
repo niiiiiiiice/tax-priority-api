@@ -19,6 +19,10 @@ type UpdateFAQCommandHandler struct {
 	faqRepo repositories.FAQRepository
 }
 
+func NewUpdateFAQCommandHandler(repo repositories.FAQRepository) *UpdateFAQCommandHandler {
+	return &UpdateFAQCommandHandler{faqRepo: repo}
+}
+
 func (h *UpdateFAQCommandHandler) HandleUpdateFAQ(ctx context.Context, cmd UpdateFAQCommand) (*dtos.CommandResult, error) {
 
 	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)

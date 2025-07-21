@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"tax-priority-api/src/application/events"
 	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/repositories"
 )
@@ -16,16 +17,20 @@ type UpdateFAQCommand struct {
 }
 
 type UpdateFAQCommandHandler struct {
-	faqRepo repositories.FAQRepository
+	repo                repositories.FAQRepository
+	notificationService events.NotificationService
 }
 
-func NewUpdateFAQCommandHandler(repo repositories.FAQRepository) *UpdateFAQCommandHandler {
-	return &UpdateFAQCommandHandler{faqRepo: repo}
+func NewUpdateFAQCommandHandler(repo repositories.FAQRepository, notificationService events.NotificationService) *UpdateFAQCommandHandler {
+	return &UpdateFAQCommandHandler{
+		repo:                repo,
+		notificationService: notificationService,
+	}
 }
 
 func (h *UpdateFAQCommandHandler) HandleUpdateFAQ(ctx context.Context, cmd UpdateFAQCommand) (*dtos.CommandResult, error) {
 
-	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)
+	faq, err := h.repo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return &dtos.CommandResult{
 			Success: false,
@@ -62,11 +67,16 @@ func (h *UpdateFAQCommandHandler) HandleUpdateFAQ(ctx context.Context, cmd Updat
 	}
 
 	// Сохраняем изменения
-	if err := h.faqRepo.Update(ctx, faq); err != nil {
+	if err := h.repo.Update(ctx, faq); err != nil {
 		return &dtos.CommandResult{
 			Success: false,
 			Error:   fmt.Sprintf("failed to update FAQ: %v", err),
 		}, err
+	}
+
+	// Отправляем уведомление об обновлении FAQ
+	if h.notificationService != nil {
+		h.notificationService.NotifyFAQUpdated(ctx, faq)
 	}
 
 	return &dtos.CommandResult{

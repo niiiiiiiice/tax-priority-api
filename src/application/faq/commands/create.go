@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"tax-priority-api/src/application/events"
 	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/repositories"
 	"tax-priority-api/src/domain/entities"
@@ -18,16 +19,20 @@ type CreateFAQCommand struct {
 }
 
 type CreateFAQCommandHandler struct {
-	faqRepo repositories.FAQRepository
+	repo                repositories.FAQRepository
+	notificationService events.NotificationService
 }
 
-func NewCreateFAQCommandHandler(repo repositories.FAQRepository) *CreateFAQCommandHandler {
-	return &CreateFAQCommandHandler{faqRepo: repo}
+func NewCreateFAQCommandHandler(repo repositories.FAQRepository, notificationService events.NotificationService) *CreateFAQCommandHandler {
+	return &CreateFAQCommandHandler{
+		repo:                repo,
+		notificationService: notificationService,
+	}
 }
 
 func (h *CreateFAQCommandHandler) HandleCreateFAQ(ctx context.Context, cmd CreateFAQCommand) (*dtos.CommandResult, error) {
 
-	exists, err := h.faqRepo.ExistsByQuestion(ctx, cmd.Question)
+	exists, err := h.repo.ExistsByQuestion(ctx, cmd.Question)
 	if err != nil {
 		return &dtos.CommandResult{
 			Success: false,
@@ -60,11 +65,16 @@ func (h *CreateFAQCommandHandler) HandleCreateFAQ(ctx context.Context, cmd Creat
 		}
 	}
 
-	if err := h.faqRepo.Create(ctx, faq); err != nil {
+	if err := h.repo.Create(ctx, faq); err != nil {
 		return &dtos.CommandResult{
 			Success: false,
 			Error:   fmt.Sprintf("failed to create FAQ: %v", err),
 		}, err
+	}
+
+	// Отправляем уведомление о создании FAQ
+	if h.notificationService != nil {
+		h.notificationService.NotifyFAQCreated(ctx, faq)
 	}
 
 	return &dtos.CommandResult{

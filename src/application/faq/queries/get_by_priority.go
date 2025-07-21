@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"tax-priority-api/src/application/faq/dtos"
+	"tax-priority-api/src/application/models"
 	"tax-priority-api/src/application/repositories"
-	"tax-priority-api/src/application/shared/models"
 	"time"
 )
 

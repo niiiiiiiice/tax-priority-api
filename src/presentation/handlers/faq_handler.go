@@ -8,6 +8,7 @@ import (
 	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/faq/handlers"
 	"tax-priority-api/src/application/faq/queries"
+	"tax-priority-api/src/presentation/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,12 +39,13 @@ func NewFAQHTTPHandler(commandHandlers *handlers.FAQCommandHandlers, queryHandle
 // @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq [post]
 func (h *FAQHTTPHandler) CreateFAQ(c *gin.Context) {
-	var cmd commands.CreateFAQCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
+	var req models.CreateFAQRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	cmd := req.ToCreateFAQCommand()
 	result, err := h.commandHandlers.Create.HandleCreateFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -111,26 +113,20 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 	offset, _ := strconv.Atoi(c.DefaultQuery("_offset", "0"))
 	sortBy := c.DefaultQuery("_sort", "createdAt")
 	sortOrder := c.DefaultQuery("_order", "desc")
+	category := c.Query("category")
+	isActive, _ := strconv.ParseBool(c.Query("isActive"))
 
-	// Создаем фильтры
-	filters := make(map[string]interface{})
-	if category := c.Query("category"); category != "" {
-		filters["category"] = category
-	}
-	if isActive := c.Query("isActive"); isActive != "" {
-		if active, err := strconv.ParseBool(isActive); err == nil {
-			filters["isActive"] = active
-		}
-	}
-
-	query := queries.GetFAQsQuery{
+	// Создаем HTTP-модель запроса
+	req := models.GetFAQsQuery{
 		Limit:     limit,
 		Offset:    offset,
 		SortBy:    sortBy,
 		SortOrder: sortOrder,
-		Filters:   filters,
+		Category:  category,
+		IsActive:  isActive,
 	}
 
+	query := req.ToGetFAQsQuery()
 	result, err := h.queryHandlers.GetMany.HandleGetFAQs(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -152,11 +148,11 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Param faq body commands.UpdateFAQCommand true "Данные для обновления"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 400 {object} gin.H
-// @Failure 404 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Param faq body models.UpdateFAQRequest true "Данные для обновления"
+// @Success 200 {object} models.CommandResult
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/{id} [put]
 func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 	id := c.Param("id")
@@ -165,13 +161,13 @@ func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 		return
 	}
 
-	var cmd commands.UpdateFAQCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
+	var req models.UpdateFAQRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	cmd.ID = id
+	cmd := req.ToUpdateFAQCommand(id)
 	result, err := h.commandHandlers.Update.HandleUpdateFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -192,9 +188,9 @@ func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 404 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Success 200 {object} models.CommandResult
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/{id} [delete]
 func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 	id := c.Param("id")
@@ -229,9 +225,9 @@ func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 // @Param _sort query string false "Поле сортировки" default(priority)
 // @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
 // @Param activeOnly query bool false "Только активные FAQ" default(false)
-// @Success 200 {array} dtos.FAQResponse
-// @Failure 400 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Success 200 {array} models.FAQResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/category/{category} [get]
 func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 	category := c.Param("category")
@@ -246,8 +242,7 @@ func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 	sortOrder := c.DefaultQuery("_order", "desc")
 	activeOnly, _ := strconv.ParseBool(c.DefaultQuery("activeOnly", "false"))
 
-	query := queries.GetFAQsByCategoryQuery{
-		Category:   category,
+	req := models.GetFAQsByCategoryQuery{
 		Limit:      limit,
 		Offset:     offset,
 		SortBy:     sortBy,
@@ -255,6 +250,7 @@ func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 		ActiveOnly: activeOnly,
 	}
 
+	query := req.ToGetFAQsByCategoryQuery(category)
 	result, err := h.queryHandlers.GetByCategory.HandleGetFAQsByCategory(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -281,9 +277,9 @@ func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
 // @Param _sort query string false "Поле сортировки" default(priority)
 // @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
 // @Param activeOnly query bool false "Только активные FAQ" default(false)
-// @Success 200 {array} dtos.FAQResponse
-// @Failure 400 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Success 200 {array} models.FAQResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/search [get]
 func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 	searchQuery := c.Query("q")
@@ -299,7 +295,7 @@ func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 	sortOrder := c.DefaultQuery("_order", "desc")
 	activeOnly, _ := strconv.ParseBool(c.DefaultQuery("activeOnly", "false"))
 
-	query := queries.SearchFAQsQuery{
+	req := models.SearchFAQsQuery{
 		Query:      searchQuery,
 		Category:   category,
 		Limit:      limit,
@@ -309,6 +305,7 @@ func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 		ActiveOnly: activeOnly,
 	}
 
+	query := req.ToSearchFAQsQuery()
 	result, err := h.queryHandlers.Search.HandleSearchFAQs(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -329,16 +326,17 @@ func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param withCounts query bool false "Включить количество FAQ в каждой категории" default(false)
-// @Success 200 {array} dtos.CategoryResponse
-// @Failure 500 {object} gin.H
+// @Success 200 {array} models.CategoryResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/categories [get]
 func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
 	withCounts, _ := strconv.ParseBool(c.DefaultQuery("withCounts", "false"))
 
-	query := queries.GetFAQCategoriesQuery{
+	req := models.GetFAQCategoriesQuery{
 		WithCounts: withCounts,
 	}
 
+	query := req.ToGetFAQCategoriesQuery()
 	result, err := h.queryHandlers.GetCategories.HandleGetFAQCategories(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -351,18 +349,18 @@ func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
 	}
 
 	if withCounts {
-		var categories []dtos.CategoryResponse
+		var categories []models.CategoryResponse
 		for name, count := range result.CategoryCounts {
-			categories = append(categories, dtos.CategoryResponse{
+			categories = append(categories, models.CategoryResponse{
 				Name:  name,
 				Count: count,
 			})
 		}
 		c.JSON(http.StatusOK, categories)
 	} else {
-		var categories []dtos.CategoryResponse
+		var categories []models.CategoryResponse
 		for _, name := range result.Categories {
-			categories = append(categories, dtos.CategoryResponse{
+			categories = append(categories, models.CategoryResponse{
 				Name: name,
 			})
 		}
@@ -377,24 +375,19 @@ func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
 // @Produce json
 // @Param category query string false "Фильтр по категории"
 // @Param isActive query bool false "Фильтр по активности"
-// @Success 200 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Success 200 {object} models.CountResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/count [get]
 func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
-	filters := make(map[string]interface{})
-	if category := c.Query("category"); category != "" {
-		filters["category"] = category
-	}
-	if isActive := c.Query("isActive"); isActive != "" {
-		if active, err := strconv.ParseBool(isActive); err == nil {
-			filters["isActive"] = active
-		}
+	category := c.Query("category")
+	isActive, _ := strconv.ParseBool(c.Query("isActive"))
+
+	req := models.GetFAQCountQuery{
+		Category: category,
+		IsActive: isActive,
 	}
 
-	query := queries.GetFAQCountQuery{
-		Filters: filters,
-	}
-
+	query := req.ToGetFAQCountQuery()
 	result, err := h.queryHandlers.GetCount.HandleGetFAQCount(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -406,7 +399,7 @@ func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"count": result.Count})
+	c.JSON(http.StatusOK, models.CountResponse{Count: result.Count})
 }
 
 // GetFAQsByIDs получает FAQ по списку ID
@@ -415,18 +408,19 @@ func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
 // @Tags FAQ
 // @Accept json
 // @Produce json
-// @Param ids body queries.GetFAQsByIDsQuery true "Список ID"
-// @Success 200 {array} dtos.FAQResponse
-// @Failure 400 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Param ids body models.GetFAQsByIDsRequest true "Список ID"
+// @Success 200 {array} models.FAQResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/batch [post]
 func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
-	var query queries.GetFAQsByIDsQuery
-	if err := c.ShouldBindJSON(&query); err != nil {
+	var req models.GetFAQsByIDsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	query := req.ToGetFAQsByIDsQuery()
 	result, err := h.queryHandlers.GetByIDs.HandleGetFAQsByIDs(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -447,18 +441,19 @@ func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
 // @Tags FAQ
 // @Accept json
 // @Produce json
-// @Param ids body commands.BulkDeleteFAQCommand true "Список ID для удаления"
-// @Success 200 {object} dtos.BatchCommandResult
-// @Failure 400 {object} gin.H
-// @Failure 500 {object} gin.H
-// @Router /api/faq/bulk-delete [post]
+// @Param ids body models.BulkDeleteFAQRequest true "Список ID для удаления"
+// @Success 200 {object} models.BatchCommandResult
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/faq/bulk-delete [delete]
 func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
-	var cmd commands.BulkDeleteFAQCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
+	var req models.BulkDeleteFAQRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	cmd := req.ToBulkDeleteFAQCommand()
 	result, err := h.commandHandlers.BulkDelete.HandleBulkDeleteFAQ(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -474,10 +469,10 @@ func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 400 {object} gin.H
-// @Failure 404 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Success 200 {object} models.CommandResult
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/{id}/activate [patch]
 func (h *FAQHTTPHandler) ActivateFAQ(c *gin.Context) {
 	id := c.Param("id")
@@ -507,10 +502,10 @@ func (h *FAQHTTPHandler) ActivateFAQ(c *gin.Context) {
 // @Tags FAQ
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 400 {object} gin.H
-// @Failure 404 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Success 200 {object} models.CommandResult
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/{id}/deactivate [patch]
 func (h *FAQHTTPHandler) DeactivateFAQ(c *gin.Context) {
 	id := c.Param("id")
@@ -541,11 +536,11 @@ func (h *FAQHTTPHandler) DeactivateFAQ(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "ID FAQ"
-// @Param priority body commands.UpdateFAQPriorityCommand true "Новый приоритет"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 400 {object} gin.H
-// @Failure 404 {object} gin.H
-// @Failure 500 {object} gin.H
+// @Param priority body models.UpdateFAQPriorityRequest true "Новый приоритет"
+// @Success 200 {object} models.CommandResult
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /api/faq/{id}/priority [patch]
 func (h *FAQHTTPHandler) UpdateFAQPriority(c *gin.Context) {
 	id := c.Param("id")
@@ -554,13 +549,13 @@ func (h *FAQHTTPHandler) UpdateFAQPriority(c *gin.Context) {
 		return
 	}
 
-	var cmd commands.UpdateFAQPriorityCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
+	var req models.UpdateFAQPriorityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	cmd.ID = id
+	cmd := req.ToUpdateFAQPriorityCommand(id)
 	result, err := h.commandHandlers.UpdatePriority.HandleUpdateFAQPriority(c.Request.Context(), cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -595,7 +590,7 @@ func RegisterFAQRoutes(r *gin.Engine, handler *FAQHTTPHandler) {
 
 		// Batch операции
 		faq.POST("/batch", handler.GetFAQsByIDs)
-		faq.POST("/bulk-delete", handler.BulkDeleteFAQs)
+		faq.DELETE("/bulk-delete", handler.BulkDeleteFAQs)
 
 		// Управление состоянием
 		faq.PATCH("/:id/activate", handler.ActivateFAQ)

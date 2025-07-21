@@ -1,7 +1,7 @@
 package dtos
 
 import (
-	"tax-priority-api/src/application/shared/models"
+	"tax-priority-api/src/application/models"
 	"tax-priority-api/src/domain/entities"
 	"time"
 )

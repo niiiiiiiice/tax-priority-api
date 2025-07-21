@@ -78,7 +78,7 @@ dev-win:
 	@echo "Starting development server on Windows..."
 	@echo "Make sure PostgreSQL is running on localhost:5432"
 	@echo "Database: tax_priority, User: postgres, Password: postgres"
-	@set DB_HOST=localhost& set DB_PORT=5432& set DB_USER=postgres& set DB_PASSWORD=postgres& set DB_NAME=tax_priority& set DB_SSLMODE=disable& set PORT=8081& air
+	@set DB_HOST=localhost& set DB_PORT=5432& set DB_USER=postgres& set DB_PASSWORD=postgres& set DB_NAME=tax_priority& set DB_SSLMODE=disable& set PORT=8080& air
 
 # Установка инструментов для разработки
 install-tools:

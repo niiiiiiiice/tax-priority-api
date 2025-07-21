@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - Tax Priority API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.connecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .message.system {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .message.event {
+            background-color: #f3e5f5;
+            color: #4a148c;
+        }
+
+        .message.subscription {
+            background-color: #e8f5e8;
+            color: #1b5e20;
+        }
+
+        .message.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button.primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        button.success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        button.warning {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        button.danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input,
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>WebSocket Test - Tax Priority API</h1>
+
+    <div class="container">
+        <h2>Статистика подключений</h2>
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalClients">-</div>
+                <div class="stat-label">Всего клиентов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="faqSubscribers">-</div>
+                <div class="stat-label">FAQ подписчики</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="connectionStatus">-</div>
+                <div class="stat-label">Статус подключения</div>
+            </div>
+        </div>
+        <button class="primary" onclick="loadStats()">Обновить статистику</button>
+    </div>
+
+    <div class="container">
+        <h2>WebSocket подключение</h2>
+        <div class="status disconnected" id="connectionStatus">Отключено</div>
+
+        <div class="controls">
+            <button class="primary" onclick="connect()" id="connectBtn">Подключиться</button>
+            <button class="danger" onclick="disconnect()" id="disconnectBtn" disabled>Отключиться</button>
+            <input type="text" id="serverUrl" placeholder="ws://localhost:8080/ws" value="ws://localhost:8080/ws">
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Подписки</h2>
+        <div class="controls">
+            <select id="subscriptionType">
+                <option value="faq">FAQ (все события)</option>
+                <option value="system">Системные события</option>
+                <option value="faq:custom">FAQ (конкретный ID)</option>
+            </select>
+            <input type="text" id="customId" placeholder="ID сущности" style="display: none;">
+            <button class="success" onclick="subscribe()" id="subscribeBtn" disabled>Подписаться</button>
+            <button class="warning" onclick="unsubscribe()" id="unsubscribeBtn" disabled>Отписаться</button>
+        </div>
+        <div>
+            <strong>Активные подписки:</strong>
+            <span id="activeSubscriptions">Нет</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Тестовые действия</h2>
+        <div class="controls">
+            <button class="primary" onclick="sendTestNotification()">Тестовое уведомление</button>
+            <button class="success" onclick="testFAQOperations()">Тестовые FAQ операции</button>
+            <button class="warning" onclick="clearMessages()">Очистить сообщения</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Сообщения</h2>
+        <div class="messages" id="messages"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let subscriptions = new Set();
+        let messageCount = 0;
+
+        // Обновление статуса подключения
+        function updateConnectionStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = message || status;
+            statusEl.className = `status ${status}`;
+
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const subscribeBtn = document.getElementById('subscribeBtn');
+            const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+
+            if (status === 'connected') {
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                subscribeBtn.disabled = false;
+                unsubscribeBtn.disabled = false;
+            } else {
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                subscribeBtn.disabled = true;
+                unsubscribeBtn.disabled = true;
+            }
+        }
+
+        // Добавление сообщения в лог
+        function addMessage(type, data) {
+            const messagesEl = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            messageEl.innerHTML = `<strong>[${timestamp}] ${type.toUpperCase()}:</strong><br>${content}`;
+
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            messageCount++;
+            if (messageCount > 100) {
+                messagesEl.removeChild(messagesEl.firstChild);
+                messageCount--;
+            }
+        }
+
+        // Подключение к WebSocket
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            if (!serverUrl) {
+                alert('Введите URL сервера');
+                return;
+            }
+
+            updateConnectionStatus('connecting', 'Подключение...');
+
+            try {
+                ws = new WebSocket(serverUrl);
+
+                ws.onopen = function (event) {
+                    updateConnectionStatus('connected', 'Подключено');
+                    addMessage('system', 'WebSocket подключение установлено');
+                };
+
+                ws.onmessage = function (event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        addMessage(data.type || 'message', data);
+
+                        // Обновляем список подписок при получении подтверждения
+                        if (data.type === 'subscription') {
+                            updateActiveSubscriptions();
+                        }
+                    } catch (e) {
+                        addMessage('error', 'Ошибка парсинга сообщения: ' + event.data);
+                    }
+                };
+
+                ws.onclose = function (event) {
+                    updateConnectionStatus('disconnected', 'Отключено');
+                    addMessage('system', `WebSocket подключение закрыто. Код: ${event.code}, Причина: ${event.reason}`);
+                    subscriptions.clear();
+                    updateActiveSubscriptions();
+                };
+
+                ws.onerror = function (error) {
+                    addMessage('error', 'Ошибка WebSocket: ' + error.message);
+                };
+
+            } catch (error) {
+                updateConnectionStatus('disconnected', 'Ошибка подключения');
+                addMessage('error', 'Ошибка создания WebSocket: ' + error.message);
+            }
+        }
+
+        // Отключение от WebSocket
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        // Подписка на события
+        function subscribe() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket не подключен');
+                return;
+            }
+
+            const subscriptionType = document.getElementById('subscriptionType').value;
+            let subscription = subscriptionType;
+
+            if (subscriptionType === 'faq:custom') {
+                const customId = document.getElementById('customId').value;
+                if (!customId) {
+                    alert('Введите ID сущности');
+                    return;
+                }
+                subscription = `faq:${customId}`;
+            }
+
+            const message = {
+                type: 'subscribe',
+                subscriptions: [subscription]
+            };
+
+            ws.send(JSON.stringify(message));
+            subscriptions.add(subscription);
+            updateActiveSubscriptions();
+            addMessage('subscription', `Подписка на: ${subscription}`);
+        }
+
+        // Отписка от событий
+        function unsubscribe() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket не подключен');
+                return;
+            }
+
+            const subscriptionType = document.getElementById('subscriptionType').value;
+            let subscription = subscriptionType;
+
+            if (subscriptionType === 'faq:custom') {
+                const customId = document.getElementById('customId').value;
+                if (!customId) {
+                    alert('Введите ID сущности');
+                    return;
+                }
+                subscription = `faq:${customId}`;
+            }
+
+            const message = {
+                type: 'unsubscribe',
+                subscriptions: [subscription]
+            };
+
+            ws.send(JSON.stringify(message));
+            subscriptions.delete(subscription);
+            updateActiveSubscriptions();
+            addMessage('subscription', `Отписка от: ${subscription}`);
+        }
+
+        // Обновление списка активных подписок
+        function updateActiveSubscriptions() {
+            const activeEl = document.getElementById('activeSubscriptions');
+            activeEl.textContent = subscriptions.size > 0 ? Array.from(subscriptions).join(', ') : 'Нет';
+        }
+
+        // Отправка тестового уведомления
+        function sendTestNotification() {
+            fetch('/ws/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage('system', 'Тестовое уведомление отправлено: ' + JSON.stringify(data));
+                })
+                .catch(error => {
+                    addMessage('error', 'Ошибка отправки тестового уведомления: ' + error.message);
+                });
+        }
+
+        // Загрузка статистики
+        function loadStats() {
+            fetch('/ws/stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalClients').textContent = data.connections || 0;
+                    document.getElementById('faqSubscribers').textContent = data.faq_subscribers || 0;
+                    document.getElementById('connectionStatus').textContent = data.enabled ? 'Включено' : 'Выключено';
+                    addMessage('system', 'Статистика обновлена: ' + JSON.stringify(data));
+                })
+                .catch(error => {
+                    addMessage('error', 'Ошибка загрузки статистики: ' + error.message);
+                });
+        }
+
+        // Тестовые FAQ операции
+        function testFAQOperations() {
+            addMessage('system', 'Запуск тестовых FAQ операций...');
+
+            // Создание тестового FAQ
+            const testFAQ = {
+                question: 'Тестовый вопрос ' + Date.now(),
+                answer: 'Тестовый ответ для проверки WebSocket уведомлений',
+                category: 'test',
+                priority: 50
+            };
+
+            fetch('/api/faq', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testFAQ)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage('system', 'FAQ создан: ' + JSON.stringify(data));
+
+                    // Обновление FAQ через 2 секунды
+                    if (data.id) {
+                        setTimeout(() => {
+                            const updatedFAQ = {
+                                ...testFAQ,
+                                answer: 'Обновленный ответ ' + Date.now()
+                            };
+
+                            fetch(`/api/faq/${data.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(updatedFAQ)
+                            })
+                                .then(response => response.json())
+                                .then(updateData => {
+                                    addMessage('system', 'FAQ обновлен: ' + JSON.stringify(updateData));
+                                });
+                        }, 2000);
+                    }
+                })
+                .catch(error => {
+                    addMessage('error', 'Ошибка создания FAQ: ' + error.message);
+                });
+        }
+
+        // Очистка сообщений
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+            messageCount = 0;
+        }
+
+        // Обработка изменения типа подписки
+        document.getElementById('subscriptionType').addEventListener('change', function () {
+            const customIdInput = document.getElementById('customId');
+            if (this.value === 'faq:custom') {
+                customIdInput.style.display = 'inline-block';
+            } else {
+                customIdInput.style.display = 'none';
+            }
+        });
+
+        // Автоматическая загрузка статистики при загрузке страницы
+        window.addEventListener('load', function () {
+            loadStats();
+            setInterval(loadStats, 10000); // Обновляем каждые 10 секунд
+        });
+    </script>
+</body>
+
+</html>

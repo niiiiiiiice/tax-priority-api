@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"tax-priority-api/src/application/events"
 	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/repositories"
 )
@@ -13,22 +14,28 @@ type UpdateFAQPriorityCommand struct {
 }
 
 type UpdateFAQPriorityCommandHandler struct {
-	faqRepo repositories.FAQRepository
+	repo                repositories.FAQRepository
+	notificationService events.NotificationService
 }
 
-func NewUpdateFAQPriorityCommandHandler(repo repositories.FAQRepository) *UpdateFAQPriorityCommandHandler {
-	return &UpdateFAQPriorityCommandHandler{faqRepo: repo}
+func NewUpdateFAQPriorityCommandHandler(repo repositories.FAQRepository, notificationService events.NotificationService) *UpdateFAQPriorityCommandHandler {
+	return &UpdateFAQPriorityCommandHandler{
+		repo:                repo,
+		notificationService: notificationService,
+	}
 }
 
 func (h *UpdateFAQPriorityCommandHandler) HandleUpdateFAQPriority(ctx context.Context, cmd UpdateFAQPriorityCommand) (*dtos.CommandResult, error) {
 
-	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)
+	faq, err := h.repo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return &dtos.CommandResult{
 			Success: false,
 			Error:   fmt.Sprintf("failed to find FAQ: %v", err),
 		}, err
 	}
+
+	oldPriority := faq.Priority
 
 	if err := faq.SetPriority(cmd.Priority); err != nil {
 		return &dtos.CommandResult{
@@ -37,11 +44,16 @@ func (h *UpdateFAQPriorityCommandHandler) HandleUpdateFAQPriority(ctx context.Co
 		}, err
 	}
 
-	if err := h.faqRepo.Update(ctx, faq); err != nil {
+	if err := h.repo.Update(ctx, faq); err != nil {
 		return &dtos.CommandResult{
 			Success: false,
 			Error:   fmt.Sprintf("failed to update FAQ priority: %v", err),
 		}, err
+	}
+
+	// Отправляем уведомление об изменении приоритета FAQ
+	if h.notificationService != nil {
+		h.notificationService.NotifyFAQPriorityChanged(ctx, faq, oldPriority)
 	}
 
 	return &dtos.CommandResult{

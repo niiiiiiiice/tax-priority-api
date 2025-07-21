@@ -79,15 +79,15 @@ CREATE DATABASE tax_priority;
 go run cmd/main.go
 ```
 
-API будет доступно по адресу: `http://localhost:8081`
+API будет доступно по адресу: `http://localhost:8080`
 
 ## Swagger Documentation
 
 После запуска API, документация будет доступна по следующим адресам:
 
-- **Swagger UI**: `http://localhost:8081/swagger` (автоматический редирект на `/swagger/index.html`)
-- **JSON Schema**: `http://localhost:8081/swagger/doc.json`
-- **YAML Schema**: `http://localhost:8081/swagger/swagger.yaml`
+- **Swagger UI**: `http://localhost:8080/swagger` (автоматический редирект на `/swagger/index.html`)
+- **JSON Schema**: `http://localhost:8080/swagger/doc.json`
+- **YAML Schema**: `http://localhost:8080/swagger/swagger.yaml`
 
 ### Генерация документации
 

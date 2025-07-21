@@ -17,7 +17,7 @@ type FAQQueryHandlers struct {
 	Search        *queries.SearchFAQsQueryHandler
 }
 
-func NewFAQQueryHandlers(repo repositories.FAQRepository) *FAQQueryHandlers {
+func NewFAQQueryHandlers(repo repositories.CachedFAQRepository) *FAQQueryHandlers {
 	return &FAQQueryHandlers{
 		GetActive:     queries.NewGetActiveFAQsQueryHandler(repo),
 		GetByCategory: queries.NewGetFAQsByCategoryQueryHandler(repo),

@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"tax-priority-api/src/application/events"
 	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/repositories"
 	"tax-priority-api/src/domain/entities"
@@ -15,11 +16,15 @@ type CreateFAQBatchCommand struct {
 }
 
 type CreateFAQBatchCommandHandler struct {
-	faqRepo repositories.FAQRepository
+	repo                repositories.FAQRepository
+	notificationService events.NotificationService
 }
 
-func NewCreateFAQBatchCommandHandler(repo repositories.FAQRepository) *CreateFAQBatchCommandHandler {
-	return &CreateFAQBatchCommandHandler{faqRepo: repo}
+func NewCreateFAQBatchCommandHandler(repo repositories.FAQRepository, notificationService events.NotificationService) *CreateFAQBatchCommandHandler {
+	return &CreateFAQBatchCommandHandler{
+		repo:                repo,
+		notificationService: notificationService,
+	}
 }
 
 func (h *CreateFAQBatchCommandHandler) HandleCreateFAQBatch(ctx context.Context, cmd CreateFAQBatchCommand) (*dtos.BatchCommandResult, error) {
@@ -66,7 +71,7 @@ func (h *CreateFAQBatchCommandHandler) HandleCreateFAQBatch(ctx context.Context,
 	}
 
 	if len(faqs) > 0 {
-		_, err := h.faqRepo.CreateBatch(ctx, faqs)
+		_, err := h.repo.CreateBatch(ctx, faqs)
 		if err != nil {
 			for i := range results {
 				if results[i].Success {
@@ -77,6 +82,11 @@ func (h *CreateFAQBatchCommandHandler) HandleCreateFAQBatch(ctx context.Context,
 				}
 			}
 			errors = append(errors, fmt.Sprintf("failed to save FAQ batch: %v", err))
+		} else {
+			// Отправляем уведомление о массовом создании FAQ
+			if h.notificationService != nil {
+				h.notificationService.NotifyFAQBatchCreated(ctx, faqs)
+			}
 		}
 	}
 

@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"tax-priority-api/src/application/events"
 	"tax-priority-api/src/application/faq/dtos"
 	"tax-priority-api/src/application/repositories"
 )
@@ -12,16 +13,20 @@ type DeactivateFAQCommand struct {
 }
 
 type DeactivateFAQCommandHandler struct {
-	faqRepo repositories.FAQRepository
+	repo                repositories.FAQRepository
+	notificationService events.NotificationService
 }
 
-func NewDeactivateFAQCommandHandler(repo repositories.FAQRepository) *DeactivateFAQCommandHandler {
-	return &DeactivateFAQCommandHandler{faqRepo: repo}
+func NewDeactivateFAQCommandHandler(repo repositories.FAQRepository, notificationService events.NotificationService) *DeactivateFAQCommandHandler {
+	return &DeactivateFAQCommandHandler{
+		repo:                repo,
+		notificationService: notificationService,
+	}
 }
 
 func (h *DeactivateFAQCommandHandler) HandleDeactivateFAQ(ctx context.Context, cmd DeactivateFAQCommand) (*dtos.CommandResult, error) {
 
-	faq, err := h.faqRepo.FindByID(ctx, cmd.ID)
+	faq, err := h.repo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return &dtos.CommandResult{
 			Success: false,
@@ -31,11 +36,16 @@ func (h *DeactivateFAQCommandHandler) HandleDeactivateFAQ(ctx context.Context, c
 
 	faq.Deactivate()
 
-	if err := h.faqRepo.Update(ctx, faq); err != nil {
+	if err := h.repo.Update(ctx, faq); err != nil {
 		return &dtos.CommandResult{
 			Success: false,
 			Error:   fmt.Sprintf("failed to deactivate FAQ: %v", err),
 		}, err
+	}
+
+	// Отправляем уведомление о деактивации FAQ
+	if h.notificationService != nil {
+		h.notificationService.NotifyFAQDeactivated(ctx, faq)
 	}
 
 	return &dtos.CommandResult{

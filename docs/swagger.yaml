@@ -3,7 +3,75 @@ definitions:
   gin.H:
     additionalProperties: {}
     type: object
-  models.CommandResult:
+  src_presentation_handlers.BroadcastMessageRequest:
+    properties:
+      data: {}
+      event:
+        type: string
+    required:
+    - event
+    type: object
+  src_presentation_handlers.ConnectionInfoResponse:
+    properties:
+      availableEvents:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      faqSubscribers:
+        type: integer
+      serverTime:
+        type: string
+      subscriptionTypes:
+        items:
+          type: string
+        type: array
+      totalClients:
+        type: integer
+    type: object
+  tax-priority-api_src_presentation_models.BatchCommandResult:
+    properties:
+      errors:
+        example:
+        - '["Validation failed for item 1"]'
+        items:
+          type: string
+        type: array
+      failureCount:
+        example: 2
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
+        type: array
+      successCount:
+        example: 8
+        type: integer
+    type: object
+  tax-priority-api_src_presentation_models.BulkDeleteFAQRequest:
+    properties:
+      ids:
+        example:
+        - '["uuid1"'
+        - ' "uuid2"]'
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  tax-priority-api_src_presentation_models.CategoryResponse:
+    properties:
+      count:
+        example: 25
+        type: integer
+      name:
+        example: налоги
+        type: string
+    type: object
+  tax-priority-api_src_presentation_models.CommandResult:
     properties:
       createdAt:
         example: "2023-12-01T10:00:00Z"
@@ -24,7 +92,13 @@ definitions:
         example: "2023-12-01T10:00:00Z"
         type: string
     type: object
-  models.CreateFAQRequest:
+  tax-priority-api_src_presentation_models.CountResponse:
+    properties:
+      count:
+        example: 42
+        type: integer
+    type: object
+  tax-priority-api_src_presentation_models.CreateFAQRequest:
     properties:
       answer:
         example: Для подачи налоговой декларации необходимо...
@@ -50,13 +124,13 @@ definitions:
     - category
     - question
     type: object
-  models.ErrorResponse:
+  tax-priority-api_src_presentation_models.ErrorResponse:
     properties:
       error:
         example: Validation failed
         type: string
     type: object
-  models.FAQResponse:
+  tax-priority-api_src_presentation_models.FAQResponse:
     properties:
       answer:
         example: Для подачи налоговой декларации необходимо...
@@ -83,7 +157,20 @@ definitions:
         example: "2023-12-01T10:00:00Z"
         type: string
     type: object
-  models.PaginatedFAQResponse:
+  tax-priority-api_src_presentation_models.GetFAQsByIDsRequest:
+    properties:
+      ids:
+        example:
+        - '["uuid1"'
+        - ' "uuid2"]'
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  tax-priority-api_src_presentation_models.PaginatedFAQResponse:
     properties:
       hasNext:
         example: true
@@ -93,7 +180,7 @@ definitions:
         type: boolean
       items:
         items:
-          $ref: '#/definitions/models.FAQResponse'
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
         type: array
       limit:
         example: 10
@@ -108,119 +195,41 @@ definitions:
         example: 10
         type: integer
     type: object
-  tax-priority-api_src_application_faq_commands.BulkDeleteFAQCommand:
+  tax-priority-api_src_presentation_models.UpdateFAQPriorityRequest:
     properties:
-      ids:
-        items:
-          type: string
-        minItems: 1
-        type: array
-    required:
-    - ids
+      priority:
+        example: 75
+        maximum: 100
+        minimum: 0
+        type: integer
     type: object
-  tax-priority-api_src_application_faq_commands.UpdateFAQCommand:
+  tax-priority-api_src_presentation_models.UpdateFAQRequest:
     properties:
       answer:
+        example: Для подачи налоговой декларации необходимо...
         maxLength: 2000
         minLength: 10
         type: string
       category:
+        example: налоги
         maxLength: 100
         type: string
-      id:
-        type: string
       priority:
+        example: 50
         maximum: 100
         minimum: 0
         type: integer
       question:
+        example: Как подать налоговую декларацию?
         maxLength: 500
         minLength: 10
         type: string
     required:
     - answer
     - category
-    - id
     - question
     type: object
-  tax-priority-api_src_application_faq_commands.UpdateFAQPriorityCommand:
-    properties:
-      id:
-        type: string
-      priority:
-        maximum: 100
-        minimum: 0
-        type: integer
-    required:
-    - id
-    type: object
-  tax-priority-api_src_application_faq_dtos.BatchCommandResult:
-    properties:
-      errors:
-        items:
-          type: string
-        type: array
-      failureCount:
-        type: integer
-      results:
-        items:
-          $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
-        type: array
-      successCount:
-        type: integer
-    type: object
-  tax-priority-api_src_application_faq_dtos.CategoryResponse:
-    properties:
-      count:
-        type: integer
-      name:
-        type: string
-    type: object
-  tax-priority-api_src_application_faq_dtos.CommandResult:
-    properties:
-      createdAt:
-        type: string
-      error:
-        type: string
-      id:
-        type: string
-      message:
-        type: string
-      success:
-        type: boolean
-      updatedAt:
-        type: string
-    type: object
-  tax-priority-api_src_application_faq_dtos.FAQResponse:
-    properties:
-      answer:
-        type: string
-      category:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      isActive:
-        type: boolean
-      priority:
-        type: integer
-      question:
-        type: string
-      updatedAt:
-        type: string
-    type: object
-  tax-priority-api_src_application_faq_queries.GetFAQsByIDsQuery:
-    properties:
-      ids:
-        items:
-          type: string
-        minItems: 1
-        type: array
-    required:
-    - ids
-    type: object
-host: localhost:8081
+host: localhost:8080
 info:
   contact:
     email: support@swagger.io
@@ -275,15 +284,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.PaginatedFAQResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.PaginatedFAQResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить список FAQ
       tags:
       - FAQ
@@ -297,22 +306,22 @@ paths:
         name: faq
         required: true
         schema:
-          $ref: '#/definitions/models.CreateFAQRequest'
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.CreateFAQRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Создать FAQ
       tags:
       - FAQ
@@ -331,15 +340,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Удалить FAQ
       tags:
       - FAQ
@@ -357,15 +366,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.FAQResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/models.ErrorResponse'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить FAQ по ID
       tags:
       - FAQ
@@ -384,26 +393,26 @@ paths:
         name: faq
         required: true
         schema:
-          $ref: '#/definitions/tax-priority-api_src_application_faq_commands.UpdateFAQCommand'
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.UpdateFAQRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Обновить FAQ
       tags:
       - FAQ
@@ -422,19 +431,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Активировать FAQ
       tags:
       - FAQ
@@ -453,19 +462,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Деактивировать FAQ
       tags:
       - FAQ
@@ -485,26 +494,26 @@ paths:
         name: priority
         required: true
         schema:
-          $ref: '#/definitions/tax-priority-api_src_application_faq_commands.UpdateFAQPriorityCommand'
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.UpdateFAQPriorityRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Обновить приоритет FAQ
       tags:
       - FAQ
@@ -519,7 +528,7 @@ paths:
         name: ids
         required: true
         schema:
-          $ref: '#/definitions/tax-priority-api_src_application_faq_queries.GetFAQsByIDsQuery'
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.GetFAQsByIDsRequest'
       produces:
       - application/json
       responses:
@@ -527,21 +536,21 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse'
+              $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
             type: array
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить FAQ по списку ID
       tags:
       - FAQ
   /api/faq/bulk-delete:
-    post:
+    delete:
       consumes:
       - application/json
       description: Удаляет несколько FAQ по списку ID
@@ -551,22 +560,22 @@ paths:
         name: ids
         required: true
         schema:
-          $ref: '#/definitions/tax-priority-api_src_application_faq_commands.BulkDeleteFAQCommand'
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.BulkDeleteFAQRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.BatchCommandResult'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.BatchCommandResult'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Массовое удаление FAQ
       tags:
       - FAQ
@@ -586,12 +595,12 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.CategoryResponse'
+              $ref: '#/definitions/tax-priority-api_src_presentation_models.CategoryResponse'
             type: array
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить категории FAQ
       tags:
       - FAQ
@@ -639,16 +648,16 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse'
+              $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
             type: array
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить FAQ по категории
       tags:
       - FAQ
@@ -670,11 +679,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CountResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить количество FAQ
       tags:
       - FAQ
@@ -726,19 +735,94 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/tax-priority-api_src_application_faq_dtos.FAQResponse'
+              $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
             type: array
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/gin.H'
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Поиск FAQ
       tags:
       - FAQ
+  /ws:
+    get:
+      description: Устанавливает WebSocket соединение для получения уведомлений в
+        реальном времени
+      parameters:
+      - description: ID клиента (если не указан, будет сгенерирован)
+        in: query
+        name: clientId
+        type: string
+      responses: {}
+      summary: WebSocket подключение
+      tags:
+      - WebSocket
+  /ws/broadcast:
+    post:
+      consumes:
+      - application/json
+      description: Отправляет сообщение всем подключенным WebSocket клиентам
+      parameters:
+      - description: Сообщение для отправки
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/src_presentation_handlers.BroadcastMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Широковещательное сообщение
+      tags:
+      - WebSocket
+  /ws/info:
+    get:
+      description: Возвращает подробную информацию о WebSocket подключениях
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/src_presentation_handlers.ConnectionInfoResponse'
+      summary: Информация о подключениях
+      tags:
+      - WebSocket
+  /ws/stats:
+    get:
+      description: Возвращает статистику WebSocket подключений и подписок
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Статистика WebSocket
+      tags:
+      - WebSocket
+  /ws/test:
+    post:
+      description: Отправляет тестовое уведомление всем подключенным клиентам
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/gin.H'
+      summary: Тестовое уведомление
+      tags:
+      - WebSocket
 schemes:
 - http
 - https

@@ -187,6 +187,17 @@ func (r *CachedFAQRepositoryImpl) DeleteBatch(ctx context.Context, ids []string)
 	return result, nil
 }
 
+// SoftDelete удаляет FAQ и инвалидирует кеш
+func (r *CachedFAQRepositoryImpl) SoftDelete(ctx context.Context, id string) error {
+	err := r.repo.SoftDelete(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	r.invalidateCacheByID(ctx, id)
+	return nil
+}
+
 // FindAll возвращает все FAQ с кешированием
 func (r *CachedFAQRepositoryImpl) FindAll(ctx context.Context, opts *models.QueryOptions) ([]*entities.FAQ, error) {
 	// Для простых запросов можем кешировать
@@ -217,10 +228,132 @@ func (r *CachedFAQRepositoryImpl) FindAll(ctx context.Context, opts *models.Quer
 	return r.repo.FindAll(ctx, opts)
 }
 
+// FindOne возвращает один FAQ с кешированием
+func (r *CachedFAQRepositoryImpl) FindOne(ctx context.Context, opts *models.QueryOptions) (*entities.FAQ, error) {
+	if opts == nil || opts.Filters == nil || len(opts.Filters) == 0 {
+		activeResults, err := r.FindActive(ctx, &models.QueryOptions{
+			Pagination: &models.PaginationParams{Offset: 0, Limit: 1},
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(activeResults) > 0 {
+			return activeResults[0], nil
+		}
+		return nil, nil
+	}
+
+	return r.repo.FindOne(ctx, opts)
+}
+
 // FindWithPagination возвращает FAQ с пагинацией
 func (r *CachedFAQRepositoryImpl) FindWithPagination(ctx context.Context, opts *models.QueryOptions) (*models.PaginatedResult[*entities.FAQ], error) {
 	// Для пагинации обычно не кешируем, так как результаты могут быстро устареть
 	return r.repo.FindWithPagination(ctx, opts)
+}
+
+// Count возвращает количество FAQ с кешированием
+func (r *CachedFAQRepositoryImpl) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {
+	// Кешируем только простые подсчеты
+	if len(filters) == 0 {
+		cacheKey := r.keys.FAQCount
+		var count int64
+
+		err := r.cache.GetJSON(ctx, cacheKey, &count)
+		if err == nil {
+			return count, nil
+		}
+
+		// Получаем из базы
+		result, err := r.repo.Count(ctx, filters)
+		if err != nil {
+			return 0, err
+		}
+
+		// Кешируем результат
+		if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
+			log.Printf("Failed to cache FAQ count: %v", err)
+		}
+
+		return result, nil
+	}
+
+	return r.repo.Count(ctx, filters)
+}
+
+// Exists проверяет существование FAQ
+func (r *CachedFAQRepositoryImpl) Exists(ctx context.Context, id string) (bool, error) {
+	return r.repo.Exists(ctx, id)
+}
+
+// ExistsByFields проверяет существование FAQ по полям
+func (r *CachedFAQRepositoryImpl) ExistsByFields(ctx context.Context, filters map[string]interface{}) (bool, error) {
+	if len(filters) == 1 {
+		if id, ok := filters["id"].(string); ok {
+			cacheKey := r.keys.GetFAQByIDKey(id)
+			exists, err := r.cache.Exists(ctx, cacheKey)
+			if err == nil {
+				return exists, nil
+			}
+		}
+
+		if category, ok := filters["category"].(string); ok {
+			cacheKey := r.keys.GetFAQByCategoryKey(category)
+			var faqs []*entities.FAQ
+			err := r.cache.GetJSON(ctx, cacheKey, &faqs)
+			if err == nil {
+				return len(faqs) > 0, nil
+			}
+		}
+	}
+
+	return r.repo.ExistsByFields(ctx, filters)
+}
+
+// WithTransaction выполняет операцию в транзакции
+func (r *CachedFAQRepositoryImpl) WithTransaction(ctx context.Context, fn repositories.TransactionFunc) error {
+	return r.repo.WithTransaction(ctx, fn)
+}
+
+// Refresh обновляет кеш
+func (r *CachedFAQRepositoryImpl) Refresh(ctx context.Context, entity *entities.FAQ) error {
+	if entity == nil {
+		return nil
+	}
+
+	fresh, err := r.repo.FindByID(ctx, entity.ID)
+	if err != nil {
+		return err
+	}
+
+	cacheKey := r.keys.GetFAQByIDKey(entity.ID)
+	if err := r.cache.SetJSON(ctx, cacheKey, fresh, r.defaultTTL); err != nil {
+		log.Printf("Failed to refresh cache for FAQ ID %s: %v", entity.ID, err)
+		return err
+	}
+
+	r.invalidateCache(ctx, fresh)
+
+	return nil
+}
+
+// Clear очищает кеш
+func (r *CachedFAQRepositoryImpl) Clear(ctx context.Context) error {
+	patterns := []string{
+		"faq:*",
+		r.keys.FAQActive,
+		r.keys.FAQCount,
+		r.keys.FAQCategories,
+	}
+
+	for _, pattern := range patterns {
+		if err := r.cache.DeletePattern(ctx, pattern); err != nil {
+			log.Printf("Failed to clear cache pattern %s: %v", pattern, err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // FindByCategory ищет FAQ по категории с кешированием
@@ -296,35 +429,6 @@ func (r *CachedFAQRepositoryImpl) SearchByCategory(ctx context.Context, query st
 	return r.repo.SearchByCategory(ctx, query, category, opts)
 }
 
-// Count возвращает количество FAQ с кешированием
-func (r *CachedFAQRepositoryImpl) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {
-	// Кешируем только простые подсчеты
-	if len(filters) == 0 {
-		cacheKey := r.keys.FAQCount
-		var count int64
-
-		err := r.cache.GetJSON(ctx, cacheKey, &count)
-		if err == nil {
-			return count, nil
-		}
-
-		// Получаем из базы
-		result, err := r.repo.Count(ctx, filters)
-		if err != nil {
-			return 0, err
-		}
-
-		// Кешируем результат
-		if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-			log.Printf("Failed to cache FAQ count: %v", err)
-		}
-
-		return result, nil
-	}
-
-	return r.repo.Count(ctx, filters)
-}
-
 // CountByCategory возвращает количество FAQ по категории
 func (r *CachedFAQRepositoryImpl) CountByCategory(ctx context.Context, category string) (int64, error) {
 	return r.repo.CountByCategory(ctx, category)
@@ -333,11 +437,6 @@ func (r *CachedFAQRepositoryImpl) CountByCategory(ctx context.Context, category 
 // CountActive возвращает количество активных FAQ
 func (r *CachedFAQRepositoryImpl) CountActive(ctx context.Context) (int64, error) {
 	return r.repo.CountActive(ctx)
-}
-
-// Exists проверяет существование FAQ
-func (r *CachedFAQRepositoryImpl) Exists(ctx context.Context, id string) (bool, error) {
-	return r.repo.Exists(ctx, id)
 }
 
 // ExistsByQuestion проверяет существование FAQ по вопросу
@@ -372,11 +471,6 @@ func (r *CachedFAQRepositoryImpl) GetCategories(ctx context.Context) ([]string, 
 // GetCategoriesWithCounts возвращает категории с количеством
 func (r *CachedFAQRepositoryImpl) GetCategoriesWithCounts(ctx context.Context) (map[string]int64, error) {
 	return r.repo.GetCategoriesWithCounts(ctx)
-}
-
-// WithTransaction выполняет операцию в транзакции
-func (r *CachedFAQRepositoryImpl) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
-	return r.repo.WithTransaction(ctx, fn)
 }
 
 // invalidateCache инвалидирует кеш для FAQ

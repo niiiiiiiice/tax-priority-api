@@ -30,6 +30,185 @@ definitions:
       totalClients:
         type: integer
     type: object
+  tax-priority-api_src_application_models.PaginatedResult-tax-priority-api_src_domain_entities_Testimonial:
+    properties:
+      hasNext:
+        type: boolean
+      hasPrev:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/tax-priority-api_src_domain_entities.Testimonial'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.ApproveTestimonialCommand:
+    properties:
+      approvedBy:
+        type: string
+      id:
+        type: string
+    required:
+    - approvedBy
+    - id
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.BulkApproveTestimonialsCommand:
+    properties:
+      approvedBy:
+        type: string
+      ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - approvedBy
+    - ids
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.BulkDeleteTestimonialsCommand:
+    properties:
+      ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.CommandResult:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+      timestamp:
+        type: string
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.QueryResult:
+    properties:
+      data:
+        $ref: '#/definitions/tax-priority-api_src_domain_entities.Testimonial'
+      error:
+        type: string
+      message:
+        type: string
+      paginated:
+        $ref: '#/definitions/tax-priority-api_src_application_models.PaginatedResult-tax-priority-api_src_domain_entities_Testimonial'
+      stats:
+        $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.TestimonialStats'
+      success:
+        type: boolean
+      timestamp:
+        type: string
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.TestimonialStats:
+    properties:
+      approvedCount:
+        type: integer
+      averageRating:
+        type: number
+      pendingCount:
+        type: integer
+      ratingDistribution:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      recentCount:
+        description: За последние 30 дней
+        type: integer
+      totalCount:
+        type: integer
+      withFilesCount:
+        type: integer
+    type: object
+  tax-priority-api_src_application_testimonial_dtos.UpdateTestimonialCommand:
+    properties:
+      author:
+        maxLength: 100
+        minLength: 2
+        type: string
+      authorEmail:
+        type: string
+      company:
+        maxLength: 255
+        type: string
+      content:
+        maxLength: 1000
+        minLength: 10
+        type: string
+      id:
+        type: string
+      position:
+        maxLength: 255
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - id
+    type: object
+  tax-priority-api_src_domain_entities.Testimonial:
+    properties:
+      approvedAt:
+        type: string
+      approvedBy:
+        type: string
+      author:
+        maxLength: 100
+        minLength: 2
+        type: string
+      authorEmail:
+        type: string
+      company:
+        type: string
+      content:
+        maxLength: 1000
+        minLength: 10
+        type: string
+      createdAt:
+        type: string
+      fileName:
+        type: string
+      filePath:
+        type: string
+      fileSize:
+        type: integer
+      fileType:
+        type: string
+      id:
+        type: string
+      isActive:
+        default: true
+        type: boolean
+      isApproved:
+        default: false
+        type: boolean
+      position:
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      updatedAt:
+        type: string
+    required:
+    - author
+    - authorEmail
+    - content
+    - rating
+    type: object
   tax-priority-api_src_presentation_models.BatchCommandResult:
     properties:
       errors:
@@ -748,6 +927,372 @@ paths:
       summary: Поиск FAQ
       tags:
       - FAQ
+  /testimonials:
+    get:
+      consumes:
+      - application/json
+      description: Получает список отзывов с пагинацией и фильтрацией
+      parameters:
+      - default: 10
+        description: Лимит записей
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение
+        in: query
+        name: offset
+        type: integer
+      - default: '"createdAt"'
+        description: Поле для сортировки
+        in: query
+        name: sortBy
+        type: string
+      - default: '"desc"'
+        description: Порядок сортировки
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      - description: Фильтр по статусу одобрения
+        in: query
+        name: approved
+        type: boolean
+      - description: Фильтр по рейтингу
+        in: query
+        name: rating
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+      summary: Получить список отзывов
+      tags:
+      - testimonials
+    post:
+      consumes:
+      - multipart/form-data
+      description: Создает новый отзыв с возможностью загрузки файла
+      parameters:
+      - description: Содержание отзыва
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: Автор отзыва
+        in: formData
+        name: author
+        required: true
+        type: string
+      - description: Email автора
+        in: formData
+        name: authorEmail
+        required: true
+        type: string
+      - description: Рейтинг (1-5)
+        in: formData
+        name: rating
+        required: true
+        type: integer
+      - description: Компания
+        in: formData
+        name: company
+        type: string
+      - description: Должность
+        in: formData
+        name: position
+        type: string
+      - description: Файл (PDF или изображение)
+        in: formData
+        name: file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+      summary: Создать отзыв
+      tags:
+      - testimonials
+  /testimonials/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет отзыв по ID
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+      summary: Удалить отзыв
+      tags:
+      - testimonials
+    get:
+      consumes:
+      - application/json
+      description: Получает отзыв по указанному ID
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+      summary: Получить отзыв по ID
+      tags:
+      - testimonials
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующий отзыв
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: testimonial
+        required: true
+        schema:
+          $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.UpdateTestimonialCommand'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+      summary: Обновить отзыв
+      tags:
+      - testimonials
+  /testimonials/{id}/approve:
+    patch:
+      consumes:
+      - application/json
+      description: Одобряет отзыв для публикации
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для одобрения
+        in: body
+        name: approveData
+        required: true
+        schema:
+          $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.ApproveTestimonialCommand'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+      summary: Одобрить отзыв
+      tags:
+      - testimonials
+  /testimonials/approved:
+    get:
+      consumes:
+      - application/json
+      description: Получает список одобренных и активных отзывов
+      parameters:
+      - default: 10
+        description: Лимит записей
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Смещение
+        in: query
+        name: offset
+        type: integer
+      - default: '"createdAt"'
+        description: Поле для сортировки
+        in: query
+        name: sortBy
+        type: string
+      - default: '"desc"'
+        description: Порядок сортировки
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+      summary: Получить одобренные отзывы
+      tags:
+      - testimonials
+  /testimonials/bulk/approve:
+    patch:
+      consumes:
+      - application/json
+      description: Одобряет несколько отзывов одновременно
+      parameters:
+      - description: Данные для массового одобрения
+        in: body
+        name: bulkApprove
+        required: true
+        schema:
+          $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.BulkApproveTestimonialsCommand'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+      summary: Массово одобрить отзывы
+      tags:
+      - testimonials
+  /testimonials/bulk/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет несколько отзывов одновременно
+      parameters:
+      - description: Данные для массового удаления
+        in: body
+        name: bulkDelete
+        required: true
+        schema:
+          $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.BulkDeleteTestimonialsCommand'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
+      summary: Массово удалить отзывы
+      tags:
+      - testimonials
+  /testimonials/stats:
+    get:
+      consumes:
+      - application/json
+      description: Получает статистику по отзывам (количество, рейтинги и т.д.)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
+      summary: Получить статистику отзывов
+      tags:
+      - testimonials
   /ws:
     get:
       description: Устанавливает WebSocket соединение для получения уведомлений в

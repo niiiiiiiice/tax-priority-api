@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -15,10 +16,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// GenericGormRepository реализует GenericRepository для GORM
-// T - domain entity, M - GORM model, ID - тип идентификатора
-// domainToModel: функция преобразования domain -> model
-// modelToDomain: функция преобразования model -> domain
 type GenericRepositoryImpl[T entities.Entity[ID], M any, ID comparable] struct {
 	db            *gorm.DB
 	domainToModel func(T) *M
@@ -88,7 +85,7 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindByID(ctx context.Context, id ID) (
 
 	result := r.db.WithContext(ctx).First(&model, "id = ?", id)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return zero, persistence.NewNotFoundError(fmt.Sprintf("entity with id %v not found", id), result.Error)
 		}
 		return zero, persistence.NewInternalError("failed to find entity by id", result.Error)
@@ -109,12 +106,12 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindByIDs(ctx context.Context, ids []I
 		return nil, persistence.NewInternalError("failed to find entities by ids", result.Error)
 	}
 
-	entities := make([]T, len(models))
+	_entities := make([]T, len(models))
 	for i, model := range models {
-		entities[i] = r.modelToDomain(&model)
+		_entities[i] = r.modelToDomain(&model)
 	}
 
-	return entities, nil
+	return _entities, nil
 }
 
 func (r *GenericRepositoryImpl[T, M, ID]) Update(ctx context.Context, entity T) error {
@@ -238,12 +235,12 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindAll(ctx context.Context, opts *sha
 		return nil, persistence.NewInternalError("failed to find entities", result.Error)
 	}
 
-	entities := make([]T, len(models))
+	_entities := make([]T, len(models))
 	for i, model := range models {
-		entities[i] = r.modelToDomain(&model)
+		_entities[i] = r.modelToDomain(&model)
 	}
 
-	return entities, nil
+	return _entities, nil
 }
 
 func (r *GenericRepositoryImpl[T, M, ID]) FindOne(ctx context.Context, opts *sharedModels.QueryOptions) (T, error) {
@@ -281,7 +278,7 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindWithPagination(ctx context.Context
 	countQuery := r.db.WithContext(ctx).Model(new(M))
 	countQuery = r.applyFilters(countQuery, opts.Filters)
 	if err := countQuery.Count(&total).Error; err != nil {
-		return nil, persistence.NewInternalError("failed to count entities", err)
+		return nil, persistence.NewInternalError("failed to count _entities", err)
 	}
 
 	query := r.db.WithContext(ctx)
@@ -295,9 +292,9 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindWithPagination(ctx context.Context
 		return nil, persistence.NewInternalError("failed to find entities with pagination", result.Error)
 	}
 
-	entities := make([]T, len(models))
+	_entities := make([]T, len(models))
 	for i, model := range models {
-		entities[i] = r.modelToDomain(&model)
+		_entities[i] = r.modelToDomain(&model)
 	}
 
 	totalPages := int((total + int64(opts.Pagination.Limit) - 1) / int64(opts.Pagination.Limit))
@@ -305,7 +302,7 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindWithPagination(ctx context.Context
 	hasPrev := opts.Pagination.Offset > 0
 
 	return &sharedModels.PaginatedResult[T]{
-		Items:      entities,
+		Items:      _entities,
 		Total:      total,
 		Offset:     opts.Pagination.Offset,
 		Limit:      opts.Pagination.Limit,

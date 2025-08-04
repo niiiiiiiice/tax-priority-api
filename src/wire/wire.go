@@ -101,6 +101,9 @@ var TestimonialProviderSet = wire.NewSet(
 	// Repository
 	ProvideTestimonialRepository,
 
+	infraRepos.NewTestimonialRepository,
+	infraRepos.NewCachedFAQRepository(),
+
 	// Application handlers
 	ProvideTestimonialCommandHandlers,
 	ProvideTestimonialQueryHandlers,

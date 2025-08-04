@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"tax-priority-api/src/application/cache"
@@ -14,518 +16,307 @@ import (
 
 // CachedFAQRepositoryImpl кешированный репозиторий FAQ
 type CachedFAQRepositoryImpl struct {
-	repo       repositories.FAQRepository
-	cache      cache.Cache
-	keys       *persistence.RedisKeys
-	defaultTTL time.Duration
+	repo repositories.FAQRepository
 }
 
 // NewCachedFAQRepository создает новый кешированный репозиторий FAQ
-func NewCachedFAQRepository(repo repositories.FAQRepository, cache cache.Cache, keys *persistence.RedisKeys) repositories.CachedFAQRepository {
-	return &CachedFAQRepositoryImpl{
-		repo:       repo,
-		cache:      cache,
-		keys:       keys,
-		defaultTTL: 15 * time.Minute,
+func NewCachedFAQRepository(
+	repo repositories.FAQRepository,
+	cache cache.Cache,
+	keys *persistence.RedisKeys,
+	config *CacheConfig,
+) repositories.CachedFAQRepository {
+
+	r := &CachedFAQRepositoryImpl{
+		repo: repo,
 	}
+
+	if config.WarmupOnStart {
+		go r.warmupCache(context.Background())
+	}
+
+	return r
 }
 
-// Create создает новую FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) Create(ctx context.Context, faq *entities.FAQ) error {
-	err := r.repo.Create(ctx, faq)
-	if err != nil {
-		return err
-	}
-
-	// Инвалидируем кеш
-	r.invalidateCache(ctx, faq)
-	return nil
-}
-
-// CreateBatch создает несколько FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) CreateBatch(ctx context.Context, faqs []*entities.FAQ) (*models.BulkOperationResult, error) {
-	result, err := r.repo.CreateBatch(ctx, faqs)
-	if err != nil {
-		return result, err
-	}
-
-	// Инвалидируем кеш для всех FAQ
-	for _, faq := range faqs {
-		r.invalidateCache(ctx, faq)
-	}
-
-	return result, nil
-}
-
-// FindByID ищет FAQ по ID с кешированием
-func (r *CachedFAQRepositoryImpl) FindByID(ctx context.Context, id string) (*entities.FAQ, error) {
-	// Пытаемся получить из кеша
-	cacheKey := r.keys.GetFAQByIDKey(id)
-	var faq entities.FAQ
-
-	err := r.cache.GetJSON(ctx, cacheKey, &faq)
+func (cr *CachedFAQRepositoryImpl) getFromCache(ctx context.Context, key string, target interface{}) (bool, error) {
+	err := cr.cache.GetJSON(ctx, key, target)
 	if err == nil {
-		return &faq, nil
+		cr.recordHit()
+		return true, nil
 	}
 
-	// Если не найдено в кеше, получаем из базы
-	result, err := r.repo.FindByID(ctx, id)
+	if err == cache.ErrCacheMiss {
+		cr.recordMiss()
+		return false, nil
+	}
+
+	cr.recordError()
+	return false, err
+}
+
+// setToCache устанавливает данные в кеш с обработкой ошибок
+func (cr *CachedFAQRepositoryImpl) setToCache(ctx context.Context, key string, value interface{}, ttl time.Duration) {
+	if err := cr.cache.SetJSON(ctx, key, value, ttl); err != nil {
+		log.Printf("Failed to cache data for key %s: %v", key, err)
+		cr.recordError()
+	}
+}
+
+// cacheOrLoad загружает из кеша или базы данных
+func (cr *CachedFAQRepositoryImpl) cacheOrLoad(
+	ctx context.Context,
+	cacheKey string,
+	loader func() (interface{}, error),
+	ttl time.Duration,
+) (interface{}, error) {
+	// Проверяем кеш
+	var result interface{}
+	found, err := cr.getFromCache(ctx, cacheKey, &result)
 	if err != nil {
-		return nil, err
+		log.Printf("Cache error for key %s: %v", cacheKey, err)
 	}
-
-	// Сохраняем в кеш
-	if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-		log.Printf("Failed to cache FAQ by ID %s: %v", id, err)
-	}
-
-	return result, nil
-}
-
-// FindByIDs ищет FAQ по списку ID
-func (r *CachedFAQRepositoryImpl) FindByIDs(ctx context.Context, ids []string) ([]*entities.FAQ, error) {
-	var faqs []*entities.FAQ
-	var missingIDs []string
-
-	// Проверяем кеш для каждого ID
-	for _, id := range ids {
-		cacheKey := r.keys.GetFAQByIDKey(id)
-		var faq entities.FAQ
-
-		err := r.cache.GetJSON(ctx, cacheKey, &faq)
-		if err == nil {
-			faqs = append(faqs, &faq)
-		} else {
-			missingIDs = append(missingIDs, id)
-		}
-	}
-
-	// Если есть отсутствующие ID, получаем их из базы
-	if len(missingIDs) > 0 {
-		missingFAQs, err := r.repo.FindByIDs(ctx, missingIDs)
-		if err != nil {
-			return nil, err
-		}
-
-		// Кешируем полученные FAQ
-		for _, faq := range missingFAQs {
-			cacheKey := r.keys.GetFAQByIDKey(faq.ID)
-			if err := r.cache.SetJSON(ctx, cacheKey, faq, r.defaultTTL); err != nil {
-				log.Printf("Failed to cache FAQ by ID %s: %v", faq.ID, err)
-			}
-		}
-
-		faqs = append(faqs, missingFAQs...)
-	}
-
-	return faqs, nil
-}
-
-// Update обновляет FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) Update(ctx context.Context, faq *entities.FAQ) error {
-	err := r.repo.Update(ctx, faq)
-	if err != nil {
-		return err
-	}
-
-	// Инвалидируем кеш
-	r.invalidateCache(ctx, faq)
-	return nil
-}
-
-// UpdateBatch обновляет несколько FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) UpdateBatch(ctx context.Context, faqs []*entities.FAQ) (*models.BulkOperationResult, error) {
-	result, err := r.repo.UpdateBatch(ctx, faqs)
-	if err != nil {
-		return result, err
-	}
-
-	// Инвалидируем кеш для всех FAQ
-	for _, faq := range faqs {
-		r.invalidateCache(ctx, faq)
-	}
-
-	return result, nil
-}
-
-// UpdateFields обновляет поля FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) UpdateFields(ctx context.Context, id string, fields map[string]interface{}) error {
-	err := r.repo.UpdateFields(ctx, id, fields)
-	if err != nil {
-		return err
-	}
-
-	// Инвалидируем кеш по ID
-	r.invalidateCacheByID(ctx, id)
-	return nil
-}
-
-// Delete удаляет FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) Delete(ctx context.Context, id string) error {
-	err := r.repo.Delete(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	// Инвалидируем кеш по ID
-	r.invalidateCacheByID(ctx, id)
-	return nil
-}
-
-// DeleteBatch удаляет несколько FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) DeleteBatch(ctx context.Context, ids []string) (*models.BulkOperationResult, error) {
-	result, err := r.repo.DeleteBatch(ctx, ids)
-	if err != nil {
-		return result, err
-	}
-
-	// Инвалидируем кеш для всех ID
-	for _, id := range ids {
-		r.invalidateCacheByID(ctx, id)
-	}
-
-	return result, nil
-}
-
-// SoftDelete удаляет FAQ и инвалидирует кеш
-func (r *CachedFAQRepositoryImpl) SoftDelete(ctx context.Context, id string) error {
-	err := r.repo.SoftDelete(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	r.invalidateCacheByID(ctx, id)
-	return nil
-}
-
-// FindAll возвращает все FAQ с кешированием
-func (r *CachedFAQRepositoryImpl) FindAll(ctx context.Context, opts *models.QueryOptions) ([]*entities.FAQ, error) {
-	// Для простых запросов можем кешировать
-	if opts == nil || (opts.Filters == nil && opts.Pagination == nil) {
-		cacheKey := "faq:all"
-		var faqs []*entities.FAQ
-
-		err := r.cache.GetJSON(ctx, cacheKey, &faqs)
-		if err == nil {
-			return faqs, nil
-		}
-
-		// Получаем из базы
-		result, err := r.repo.FindAll(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		// Кешируем результат
-		if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-			log.Printf("Failed to cache all FAQs: %v", err)
-		}
-
+	if found {
 		return result, nil
 	}
 
-	// Для сложных запросов не кешируем
-	return r.repo.FindAll(ctx, opts)
-}
-
-// FindOne возвращает один FAQ с кешированием
-func (r *CachedFAQRepositoryImpl) FindOne(ctx context.Context, opts *models.QueryOptions) (*entities.FAQ, error) {
-	if opts == nil || opts.Filters == nil || len(opts.Filters) == 0 {
-		activeResults, err := r.FindActive(ctx, &models.QueryOptions{
-			Pagination: &models.PaginationParams{Offset: 0, Limit: 1},
-		})
-		if err != nil {
-			return nil, err
-		}
-		if len(activeResults) > 0 {
-			return activeResults[0], nil
-		}
-		return nil, nil
-	}
-
-	return r.repo.FindOne(ctx, opts)
-}
-
-// FindWithPagination возвращает FAQ с пагинацией
-func (r *CachedFAQRepositoryImpl) FindWithPagination(ctx context.Context, opts *models.QueryOptions) (*models.PaginatedResult[*entities.FAQ], error) {
-	// Для пагинации обычно не кешируем, так как результаты могут быстро устареть
-	return r.repo.FindWithPagination(ctx, opts)
-}
-
-// Count возвращает количество FAQ с кешированием
-func (r *CachedFAQRepositoryImpl) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {
-	// Кешируем только простые подсчеты
-	if len(filters) == 0 {
-		cacheKey := r.keys.FAQCount
-		var count int64
-
-		err := r.cache.GetJSON(ctx, cacheKey, &count)
-		if err == nil {
-			return count, nil
-		}
-
-		// Получаем из базы
-		result, err := r.repo.Count(ctx, filters)
-		if err != nil {
-			return 0, err
-		}
-
-		// Кешируем результат
-		if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-			log.Printf("Failed to cache FAQ count: %v", err)
-		}
-
-		return result, nil
-	}
-
-	return r.repo.Count(ctx, filters)
-}
-
-// Exists проверяет существование FAQ
-func (r *CachedFAQRepositoryImpl) Exists(ctx context.Context, id string) (bool, error) {
-	return r.repo.Exists(ctx, id)
-}
-
-// ExistsByFields проверяет существование FAQ по полям
-func (r *CachedFAQRepositoryImpl) ExistsByFields(ctx context.Context, filters map[string]interface{}) (bool, error) {
-	if len(filters) == 1 {
-		if id, ok := filters["id"].(string); ok {
-			cacheKey := r.keys.GetFAQByIDKey(id)
-			exists, err := r.cache.Exists(ctx, cacheKey)
-			if err == nil {
-				return exists, nil
-			}
-		}
-
-		if category, ok := filters["category"].(string); ok {
-			cacheKey := r.keys.GetFAQByCategoryKey(category)
-			var faqs []*entities.FAQ
-			err := r.cache.GetJSON(ctx, cacheKey, &faqs)
-			if err == nil {
-				return len(faqs) > 0, nil
-			}
-		}
-	}
-
-	return r.repo.ExistsByFields(ctx, filters)
-}
-
-// WithTransaction выполняет операцию в транзакции
-func (r *CachedFAQRepositoryImpl) WithTransaction(ctx context.Context, fn repositories.TransactionFunc) error {
-	return r.repo.WithTransaction(ctx, fn)
-}
-
-// Refresh обновляет кеш
-func (r *CachedFAQRepositoryImpl) Refresh(ctx context.Context, entity *entities.FAQ) error {
-	if entity == nil {
-		return nil
-	}
-
-	fresh, err := r.repo.FindByID(ctx, entity.ID)
-	if err != nil {
-		return err
-	}
-
-	cacheKey := r.keys.GetFAQByIDKey(entity.ID)
-	if err := r.cache.SetJSON(ctx, cacheKey, fresh, r.defaultTTL); err != nil {
-		log.Printf("Failed to refresh cache for FAQ ID %s: %v", entity.ID, err)
-		return err
-	}
-
-	r.invalidateCache(ctx, fresh)
-
-	return nil
-}
-
-// Clear очищает кеш
-func (r *CachedFAQRepositoryImpl) Clear(ctx context.Context) error {
-	patterns := []string{
-		"faq:*",
-		r.keys.FAQActive,
-		r.keys.FAQCount,
-		r.keys.FAQCategories,
-	}
-
-	for _, pattern := range patterns {
-		if err := r.cache.DeletePattern(ctx, pattern); err != nil {
-			log.Printf("Failed to clear cache pattern %s: %v", pattern, err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-// FindByCategory ищет FAQ по категории с кешированием
-func (r *CachedFAQRepositoryImpl) FindByCategory(ctx context.Context, category string, opts *models.QueryOptions) ([]*entities.FAQ, error) {
-	// Кешируем только простые запросы по категории
-	if opts == nil || (opts.Filters == nil && opts.Pagination == nil) {
-		cacheKey := r.keys.GetFAQByCategoryKey(category)
-		var faqs []*entities.FAQ
-
-		err := r.cache.GetJSON(ctx, cacheKey, &faqs)
-		if err == nil {
-			return faqs, nil
-		}
-
-		// Получаем из базы
-		result, err := r.repo.FindByCategory(ctx, category, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		// Кешируем результат
-		if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-			log.Printf("Failed to cache FAQs by category %s: %v", category, err)
-		}
-
-		return result, nil
-	}
-
-	return r.repo.FindByCategory(ctx, category, opts)
-}
-
-// FindActive ищет активные FAQ с кешированием
-func (r *CachedFAQRepositoryImpl) FindActive(ctx context.Context, opts *models.QueryOptions) ([]*entities.FAQ, error) {
-	// Кешируем только простые запросы активных FAQ
-	if opts == nil || (opts.Filters == nil && opts.Pagination == nil) {
-		cacheKey := r.keys.FAQActive
-		var faqs []*entities.FAQ
-
-		err := r.cache.GetJSON(ctx, cacheKey, &faqs)
-		if err == nil {
-			return faqs, nil
-		}
-
-		// Получаем из базы
-		result, err := r.repo.FindActive(ctx, opts)
-		if err != nil {
-			return nil, err
-		}
-
-		// Кешируем результат
-		if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-			log.Printf("Failed to cache active FAQs: %v", err)
-		}
-
-		return result, nil
-	}
-
-	return r.repo.FindActive(ctx, opts)
-}
-
-// FindByPriority ищет FAQ по приоритету
-func (r *CachedFAQRepositoryImpl) FindByPriority(ctx context.Context, minPriority int, opts *models.QueryOptions) ([]*entities.FAQ, error) {
-	return r.repo.FindByPriority(ctx, minPriority, opts)
-}
-
-// Search выполняет поиск FAQ
-func (r *CachedFAQRepositoryImpl) Search(ctx context.Context, query string, opts *models.QueryOptions) ([]*entities.FAQ, error) {
-	return r.repo.Search(ctx, query, opts)
-}
-
-// SearchByCategory выполняет поиск FAQ по категории
-func (r *CachedFAQRepositoryImpl) SearchByCategory(ctx context.Context, query string, category string, opts *models.QueryOptions) ([]*entities.FAQ, error) {
-	return r.repo.SearchByCategory(ctx, query, category, opts)
-}
-
-// CountByCategory возвращает количество FAQ по категории
-func (r *CachedFAQRepositoryImpl) CountByCategory(ctx context.Context, category string) (int64, error) {
-	return r.repo.CountByCategory(ctx, category)
-}
-
-// CountActive возвращает количество активных FAQ
-func (r *CachedFAQRepositoryImpl) CountActive(ctx context.Context) (int64, error) {
-	return r.repo.CountActive(ctx)
-}
-
-// ExistsByQuestion проверяет существование FAQ по вопросу
-func (r *CachedFAQRepositoryImpl) ExistsByQuestion(ctx context.Context, question string) (bool, error) {
-	return r.repo.ExistsByQuestion(ctx, question)
-}
-
-// GetCategories возвращает список категорий с кешированием
-func (r *CachedFAQRepositoryImpl) GetCategories(ctx context.Context) ([]string, error) {
-	cacheKey := r.keys.FAQCategories
-	var categories []string
-
-	err := r.cache.GetJSON(ctx, cacheKey, &categories)
-	if err == nil {
-		return categories, nil
-	}
-
-	// Получаем из базы
-	result, err := r.repo.GetCategories(ctx)
+	// Загружаем из базы
+	data, err := loader()
 	if err != nil {
 		return nil, err
 	}
 
 	// Кешируем результат
-	if err := r.cache.SetJSON(ctx, cacheKey, result, r.defaultTTL); err != nil {
-		log.Printf("Failed to cache FAQ categories: %v", err)
+	cr.setToCache(ctx, cacheKey, data, ttl)
+	return data, nil
+}
+
+func (cr *CachedFAQRepositoryImpl) Create(ctx context.Context, faq *entities.FAQ) error {
+	return cr.repo.Create(ctx, faq)
+}
+
+func (cr *CachedFAQRepositoryImpl) CreateBatch(ctx context.Context, faqs []*entities.FAQ) (*models.BulkOperationResult, error) {
+	return cr.repo.CreateBatch(ctx, faqs)
+}
+
+func (cr *CachedFAQRepositoryImpl) FindByID(ctx context.Context, id string) (*entities.FAQ, error) {
+	return cr.repo.FindByID(ctx, id)
+}
+
+func (cr *CachedFAQRepositoryImpl) FindByIDs(ctx context.Context, ids []string) ([]*entities.FAQ, error) {
+	return cr.repo.FindByIDs(ctx, ids)
+}
+
+func (cr *CachedFAQRepositoryImpl) Update(ctx context.Context, faq *entities.FAQ) error {
+	return cr.repo.Update(ctx, faq)
+}
+
+func (cr *CachedFAQRepositoryImpl) UpdateBatch(ctx context.Context, faqs []*entities.FAQ) (*models.BulkOperationResult, error) {
+	return cr.repo.UpdateBatch(ctx, faqs)
+}
+
+// Методы метрик
+
+func (cr *CachedFAQRepositoryImpl) recordHit() {
+	if cr.config.EnableMetrics {
+		cr.metrics.mu.Lock()
+		cr.metrics.hits++
+		cr.metrics.mu.Unlock()
+	}
+}
+
+func (cr *CachedFAQRepositoryImpl) recordMiss() {
+	if cr.config.EnableMetrics {
+		cr.metrics.mu.Lock()
+		cr.metrics.misses++
+		cr.metrics.mu.Unlock()
+	}
+}
+
+func (cr *CachedFAQRepositoryImpl) recordError() {
+	if cr.config.EnableMetrics {
+		cr.metrics.mu.Lock()
+		cr.metrics.errors++
+		cr.metrics.mu.Unlock()
+	}
+}
+
+// GetMetrics возвращает метрики кеша
+func (cr *CachedFAQRepositoryImpl) GetMetrics() map[string]int64 {
+	cr.metrics.mu.RLock()
+	defer cr.metrics.mu.RUnlock()
+
+	total := cr.metrics.hits + cr.metrics.misses
+	hitRate := int64(0)
+	if total > 0 {
+		hitRate = (cr.metrics.hits * 100) / total
 	}
 
-	return result, nil
+	return map[string]int64{
+		"hits":     cr.metrics.hits,
+		"misses":   cr.metrics.misses,
+		"errors":   cr.metrics.errors,
+		"total":    total,
+		"hit_rate": hitRate,
+	}
 }
 
-// GetCategoriesWithCounts возвращает категории с количеством
-func (r *CachedFAQRepositoryImpl) GetCategoriesWithCounts(ctx context.Context) (map[string]int64, error) {
-	return r.repo.GetCategoriesWithCounts(ctx)
+// warmupCache прогревает кеш при старте
+func (cr *CachedFAQRepositoryImpl) warmupCache(ctx context.Context) {
+	log.Println("Starting cache warmup...")
+
+	// Прогреваем активные FAQ
+	if faqs, err := cr.repo.FindActive(ctx, nil); err == nil {
+		cacheKey := cr.keys.FAQActive
+		cr.setToCache(ctx, cacheKey, faqs, cr.config.DefaultTTL)
+
+		// Кешируем каждый FAQ по ID
+		for _, faq := range faqs {
+			key := cr.keys.GetFAQByIDKey(faq.ID)
+			cr.setToCache(ctx, key, faq, cr.config.DefaultTTL)
+		}
+	}
+
+	// Прогреваем категории
+	if categories, err := cr.repo.GetCategories(ctx); err == nil {
+		cr.setToCache(ctx, cr.keys.FAQCategories, categories, cr.config.LongTTL)
+	}
+
+	log.Println("Cache warmup completed")
 }
 
-// invalidateCache инвалидирует кеш для FAQ
-func (r *CachedFAQRepositoryImpl) invalidateCache(ctx context.Context, faq *entities.FAQ) {
-	// Удаляем кеш по ID
-	cacheKey := r.keys.GetFAQByIDKey(faq.ID)
-	if err := r.cache.Delete(ctx, cacheKey); err != nil {
+// generateCacheKey генерирует ключ кеша на основе параметров запроса
+func (cr *CachedFAQRepositoryImpl) generateCacheKey(prefix string, opts *models.QueryOptions) string {
+	if opts == nil {
+		return prefix
+	}
+
+	// Простая генерация ключа, можно улучшить хешированием
+	key := prefix
+
+	if opts.Filters != nil && len(opts.Filters) > 0 {
+		key = fmt.Sprintf("%s:filter:%v", key, opts.Filters)
+	}
+
+	if opts.Pagination != nil {
+		key = fmt.Sprintf("%s:page:%d:%d", key, opts.Pagination.Offset, opts.Pagination.Limit)
+	}
+
+	if opts.SortBy != nil && len(opts.SortBy) > 0 {
+		key = fmt.Sprintf("%s:sort:%v", key, opts.SortBy)
+	}
+
+	return key
+}
+
+// InvalidateForFAQ инвалидирует кеш для конкретного FAQ
+func (ci *CacheInvalidator) InvalidateForFAQ(ctx context.Context, faq *entities.FAQ) {
+	if faq == nil {
+		return
+	}
+
+	// Всегда удаляем кеш по ID
+	if err := ci.cache.Delete(ctx, ci.keys.GetFAQByIDKey(faq.ID)); err != nil {
 		log.Printf("Failed to invalidate cache for FAQ ID %s: %v", faq.ID, err)
 	}
 
-	// Удаляем кеш по категории
-	categoryKey := r.keys.GetFAQByCategoryKey(faq.Category)
-	if err := r.cache.Delete(ctx, categoryKey); err != nil {
-		log.Printf("Failed to invalidate cache for FAQ category %s: %v", faq.Category, err)
+	// В зависимости от режима инвалидации
+	if ci.mode == "aggressive" {
+		ci.invalidateAll(ctx)
+	} else {
+		ci.invalidateSelective(ctx, faq)
+	}
+}
+
+// InvalidateForUpdate инвалидирует кеш при обновлении
+func (ci *CacheInvalidator) InvalidateForUpdate(ctx context.Context, oldFAQ, newFAQ *entities.FAQ) {
+	// Удаляем кеш по ID
+	if newFAQ != nil {
+		if err := ci.cache.Delete(ctx, ci.keys.GetFAQByIDKey(newFAQ.ID)); err != nil {
+			log.Printf("Failed to invalidate cache for FAQ ID %s: %v", newFAQ.ID, err)
+		}
 	}
 
-	// Удаляем общие кеши
-	generalKeys := []string{
-		r.keys.FAQActive,
-		r.keys.FAQCount,
-		r.keys.FAQCategories,
+	// Если изменилась категория, инвалидируем обе
+	if oldFAQ != nil && newFAQ != nil && oldFAQ.Category != newFAQ.Category {
+		ci.cache.Delete(ctx, ci.keys.GetFAQByCategoryKey(oldFAQ.Category))
+		ci.cache.Delete(ctx, ci.keys.GetFAQByCategoryKey(newFAQ.Category))
+	} else if newFAQ != nil {
+		ci.cache.Delete(ctx, ci.keys.GetFAQByCategoryKey(newFAQ.Category))
+	}
+
+	// Инвалидируем агрегированные данные
+	ci.invalidateAggregates(ctx)
+}
+
+// InvalidateBatch инвалидирует кеш для множества FAQ
+func (ci *CacheInvalidator) InvalidateBatch(ctx context.Context, faqs []*entities.FAQ) {
+	// Используем pipeline для батчевого удаления
+	keys := make([]string, 0, len(faqs)*2)
+	categories := make(map[string]bool)
+
+	for _, faq := range faqs {
+		if faq != nil {
+			keys = append(keys, ci.keys.GetFAQByIDKey(faq.ID))
+			categories[faq.Category] = true
+		}
+	}
+
+	// Добавляем ключи категорий
+	for category := range categories {
+		keys = append(keys, ci.keys.GetFAQByCategoryKey(category))
+	}
+
+	// Батчевое удаление
+	if len(keys) > 0 {
+		if err := ci.cache.DeleteBatch(ctx, keys); err != nil {
+			log.Printf("Failed to batch invalidate cache: %v", err)
+		}
+	}
+
+	ci.invalidateAggregates(ctx)
+}
+
+func (ci *CacheInvalidator) invalidateSelective(ctx context.Context, faq *entities.FAQ) {
+	// Удаляем только связанные кеши
+	keys := []string{
+		ci.keys.GetFAQByCategoryKey(faq.Category),
+		ci.keys.FAQActive,
 		"faq:all",
 	}
 
-	for _, key := range generalKeys {
-		if err := r.cache.Delete(ctx, key); err != nil {
-			log.Printf("Failed to invalidate cache for key %s: %v", key, err)
+	for _, key := range keys {
+		ci.cache.Delete(ctx, key)
+	}
+
+	// Инвалидируем кешированные результаты с этой категорией
+	pattern := fmt.Sprintf("faq:all:filter:*category:%s*", faq.Category)
+	ci.cache.DeletePattern(ctx, pattern)
+}
+
+func (ci *CacheInvalidator) invalidateAll(ctx context.Context) {
+	patterns := []string{
+		"faq:*",
+		ci.keys.FAQActive,
+		ci.keys.FAQCount,
+		ci.keys.FAQCategories,
+	}
+
+	for _, pattern := range patterns {
+		if err := ci.cache.DeletePattern(ctx, pattern); err != nil {
+			log.Printf("Failed to clear cache pattern %s: %v", pattern, err)
 		}
 	}
 }
 
-// invalidateCacheByID инвалидирует кеш по ID
-func (r *CachedFAQRepositoryImpl) invalidateCacheByID(ctx context.Context, id string) {
-	// Удаляем кеш по ID
-	cacheKey := r.keys.GetFAQByIDKey(id)
-	if err := r.cache.Delete(ctx, cacheKey); err != nil {
-		log.Printf("Failed to invalidate cache for FAQ ID %s: %v", id, err)
-	}
-
-	// Удаляем общие кеши
-	generalKeys := []string{
-		r.keys.FAQActive,
-		r.keys.FAQCount,
-		r.keys.FAQCategories,
+func (ci *CacheInvalidator) invalidateAggregates(ctx context.Context) {
+	keys := []string{
+		ci.keys.FAQCount,
+		ci.keys.FAQCategories,
+		ci.keys.FAQActive,
 		"faq:all",
 	}
 
-	for _, key := range generalKeys {
-		if err := r.cache.Delete(ctx, key); err != nil {
-			log.Printf("Failed to invalidate cache for key %s: %v", key, err)
-		}
-	}
-
-	categoryPattern := "faq:category:*"
-	if err := r.cache.DeletePattern(ctx, categoryPattern); err != nil {
-		log.Printf("Failed to invalidate cache pattern %s: %v", categoryPattern, err)
+	for _, key := range keys {
+		ci.cache.Delete(ctx, key)
 	}
 }

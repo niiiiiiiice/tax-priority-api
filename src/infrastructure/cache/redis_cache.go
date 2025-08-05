@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -16,7 +17,7 @@ import (
 type RedisCache struct {
 	client *redis.Client
 	config *cache.CacheConfig
-	stats  *cache.CacheStats
+	stats  *cache.Stats
 }
 
 // NewRedisCache создает новый экземпляр Redis кеша
@@ -24,7 +25,7 @@ func NewRedisCache(client *redis.Client, config *cache.CacheConfig) cache.Cache 
 	return &RedisCache{
 		client: client,
 		config: config,
-		stats: &cache.CacheStats{
+		stats: &cache.Stats{
 			LastUpdated: time.Now(),
 		},
 	}
@@ -58,7 +59,7 @@ func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
 
 	value, err := r.client.Get(ctx, key).Result()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			atomic.AddInt64(&r.stats.Misses, 1)
 			return "", cache.NewCacheError("get", key, fmt.Errorf("key not found"))
 		}
@@ -161,7 +162,6 @@ func (r *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
 	return exists > 0, nil
 }
 
-// SetNX устанавливает значение только если ключ не существует
 func (r *RedisCache) SetNX(ctx context.Context, key string, value interface{}, ttl time.Duration) (bool, error) {
 	if !r.config.Enabled {
 		return false, nil
@@ -184,7 +184,6 @@ func (r *RedisCache) SetNX(ctx context.Context, key string, value interface{}, t
 	return success, nil
 }
 
-// Expire устанавливает TTL для существующего ключа
 func (r *RedisCache) Expire(ctx context.Context, key string, ttl time.Duration) error {
 	if !r.config.Enabled {
 		return nil
@@ -199,7 +198,6 @@ func (r *RedisCache) Expire(ctx context.Context, key string, ttl time.Duration) 
 	return nil
 }
 
-// TTL получает оставшееся время жизни ключа
 func (r *RedisCache) TTL(ctx context.Context, key string) (time.Duration, error) {
 	if !r.config.Enabled {
 		return 0, cache.NewCacheError("ttl", key, fmt.Errorf("cache disabled"))
@@ -214,7 +212,6 @@ func (r *RedisCache) TTL(ctx context.Context, key string) (time.Duration, error)
 	return ttl, nil
 }
 
-// Clear очищает весь кеш
 func (r *RedisCache) Clear(ctx context.Context) error {
 	if !r.config.Enabled {
 		return nil
@@ -229,13 +226,11 @@ func (r *RedisCache) Clear(ctx context.Context) error {
 	return nil
 }
 
-// Close закрывает соединение с кешем
 func (r *RedisCache) Close() error {
 	return r.client.Close()
 }
 
-// GetStats возвращает статистику кеша
-func (r *RedisCache) GetStats() *cache.CacheStats {
+func (r *RedisCache) GetStats() *cache.Stats {
 	r.stats.LastUpdated = time.Now()
 	return r.stats
 }

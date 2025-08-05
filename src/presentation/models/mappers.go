@@ -47,7 +47,7 @@ func (r *GetFAQsQuery) ToGetFAQsQuery() queries.GetFAQsQuery {
 	}
 
 	// Добавляем фильтр по активности, если он был передан
-	if r.IsActive {
+	if r.IsActive != nil {
 		filters["isActive"] = r.IsActive
 	}
 

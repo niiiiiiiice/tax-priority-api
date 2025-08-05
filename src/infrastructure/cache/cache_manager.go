@@ -119,7 +119,8 @@ func (m *DefaultCacheManager[T, ID]) GetMultiple(
 		for id, entity := range loadedEntities {
 			foundEntities[id] = entity
 			go func(e T) {
-				_ = m.Set(ctx, e, m.config.DefaultTTL)
+				bgCtx := context.Background()
+				_ = m.Set(bgCtx, e, m.config.DefaultTTL)
 			}(entity)
 		}
 	}
@@ -144,7 +145,9 @@ func (m *DefaultCacheManager[T, ID]) GetQuery(
 		return loader()
 	}
 
-	cached, err := m.cache.Get(ctx, queryKey)
+	// Пытаемся получить данные из кеша как JSON строку
+	var cached interface{}
+	err := m.cache.GetJSON(ctx, queryKey, &cached)
 	if err == nil {
 		m.stats.RecordHit()
 		return cached, nil
@@ -161,6 +164,50 @@ func (m *DefaultCacheManager[T, ID]) GetQuery(
 		ttl = m.config.DefaultTTL
 	}
 	_ = m.cache.SetJSON(ctx, queryKey, result, ttl)
+
+	return result, nil
+}
+
+// GetTypedQuery - типизированная версия GetQuery для конкретных типов
+func GetTypedQuery[R any, T any, ID comparable](
+	ctx context.Context,
+	manager CacheManager[T, ID],
+	queryKey string,
+	loader func() (R, error),
+	ttl time.Duration,
+) (R, error) {
+	var zero R
+
+	// Приводим к конкретной реализации для доступа к внутренним компонентам
+	defaultManager, ok := manager.(*DefaultCacheManager[T, ID])
+	if !ok {
+		// Fallback если не удается привести тип
+		return loader()
+	}
+
+	if !defaultManager.config.Enabled {
+		return loader()
+	}
+
+	// Пытаемся получить данные из кеша с правильной типизацией
+	var cached R
+	err := defaultManager.cache.GetJSON(ctx, queryKey, &cached)
+	if err == nil {
+		defaultManager.stats.RecordHit()
+		return cached, nil
+	}
+
+	defaultManager.stats.RecordMiss()
+
+	result, err := loader()
+	if err != nil {
+		return zero, err
+	}
+
+	if ttl == 0 {
+		ttl = defaultManager.config.DefaultTTL
+	}
+	_ = defaultManager.cache.SetJSON(ctx, queryKey, result, ttl)
 
 	return result, nil
 }

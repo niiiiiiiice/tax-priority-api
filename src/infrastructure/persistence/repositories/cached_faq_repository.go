@@ -40,31 +40,25 @@ func NewCachedFAQRepository(
 func (r *CachedFAQRepositoryImpl) GetCategories(ctx context.Context, withCounts bool) ([]string, map[string]int64, error) {
 	cacheKey := GenerateFAQCategoriesKey(withCounts)
 
-	cached, err := r.cacheManager.GetQuery(ctx, cacheKey, func() (interface{}, error) {
+	result, err := cache.GetTypedQuery(ctx, r.cacheManager, cacheKey, func() (*dtos.CategoriesResult, error) {
 		categories, categoryCounts, err := r.faqRepo.GetCategories(ctx, withCounts)
 		if err != nil {
 			return nil, err
 		}
 
-		result := &dtos.CategoriesResult{
+		return &dtos.CategoriesResult{
 			Categories:     categories,
 			CategoryCounts: categoryCounts,
 			WithCounts:     withCounts,
 			CachedAt:       time.Now(),
-		}
-
-		return result, nil
+		}, nil
 	}, r.config.DefaultTTL)
 
 	if err != nil {
 		return r.faqRepo.GetCategories(ctx, withCounts)
 	}
 
-	if result, ok := cached.(*dtos.CategoriesResult); ok {
-		return result.Categories, result.CategoryCounts, nil
-	}
-
-	return r.faqRepo.GetCategories(ctx, withCounts)
+	return result.Categories, result.CategoryCounts, nil
 }
 
 func (r *CachedFAQRepositoryImpl) invalidateCategoriesCache(ctx context.Context) error {

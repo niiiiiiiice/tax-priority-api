@@ -435,7 +435,8 @@ func (r *GenericRepositoryImpl[T, M, ID]) applySorting(query *gorm.DB, sortBy []
 
 	for _, sort := range sortBy {
 		dbColumn := r.mapFieldToColumn(sort.Field)
-		query = query.Order(clause.OrderByColumn{Column: clause.Column{Name: dbColumn}, Desc: sort.Order == sharedModels.DESC})
+		desc := sort.Order.ToUpper() == sharedModels.DESC
+		query = query.Order(clause.OrderByColumn{Column: clause.Column{Name: dbColumn}, Desc: desc})
 	}
 
 	return query

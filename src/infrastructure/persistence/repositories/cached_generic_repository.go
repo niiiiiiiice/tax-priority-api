@@ -185,8 +185,9 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindAll(ctx context.Context, opts *
 
 	// Кешируем отдельные сущности асинхронно
 	go func() {
+		bgCtx := context.Background()
 		for _, entity := range foundEntities {
-			_ = r.cacheManager.Set(ctx, entity, r.config.DefaultTTL)
+			_ = r.cacheManager.Set(bgCtx, entity, r.config.DefaultTTL)
 		}
 	}()
 
@@ -220,7 +221,7 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindOne(ctx context.Context, opts *
 func (r *CachedGenericRepositoryImpl[T, ID]) FindWithPagination(ctx context.Context, opts *models.QueryOptions) (*models.PaginatedResult[T], error) {
 	cacheKey := r.keyGen.GenerateQueryKey("paginated", opts)
 
-	result, err := r.cacheManager.GetQuery(ctx, cacheKey, func() (interface{}, error) {
+	result, err := cache.GetTypedQuery(ctx, r.cacheManager, cacheKey, func() (*models.PaginatedResult[T], error) {
 		return r.genericRepo.FindWithPagination(ctx, opts)
 	}, r.config.ShortTTL)
 
@@ -228,20 +229,16 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindWithPagination(ctx context.Cont
 		return nil, err
 	}
 
-	// Преобразование типа
-	paginatedResult, ok := result.(*models.PaginatedResult[T])
-	if !ok {
-		return r.genericRepo.FindWithPagination(ctx, opts)
-	}
-
 	// Кешируем отдельные сущности асинхронно
 	go func() {
-		for _, entity := range paginatedResult.Items {
-			_ = r.cacheManager.Set(ctx, entity, r.config.DefaultTTL)
+		bgCtx := context.Background()
+		for _, entity := range result.Items {
+			_ = r.cacheManager.Set(bgCtx, entity, r.config.DefaultTTL)
 		}
 	}()
 
-	return paginatedResult, nil
+	return result, nil
+
 }
 
 func (r *CachedGenericRepositoryImpl[T, ID]) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {

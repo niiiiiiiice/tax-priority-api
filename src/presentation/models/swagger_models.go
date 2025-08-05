@@ -114,7 +114,7 @@ type GetFAQsQuery struct {
 	SortBy    string `form:"_sort" example:"createdAt"`
 	SortOrder string `form:"_order" example:"desc"`
 	Category  string `form:"category" example:"налоги"`
-	IsActive  bool   `form:"isActive" example:"true"`
+	IsActive  *bool  `form:"isActive" example:"true"`
 }
 
 // GetFAQsByCategoryQuery модель для получения FAQ по категории

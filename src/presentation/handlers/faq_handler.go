@@ -100,10 +100,14 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 	sortBy := c.DefaultQuery("_sort", "createdAt")
 	sortOrder := c.DefaultQuery("_order", "desc")
 	category := c.Query("category")
-	isActive, err := strconv.ParseBool(c.DefaultQuery("isActive", "true"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid isActive parameter, must be true or false"})
-		return
+	var isActive *bool = nil
+	if isActiveQuery := c.Query("isActive"); isActiveQuery != "" {
+		isActiveVal, err := strconv.ParseBool(isActiveQuery)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid isActive parameter, must be true or false"})
+			return
+		}
+		isActive = &isActiveVal
 	}
 
 	req := models.GetFAQsQuery{

@@ -81,9 +81,13 @@ var BaseProviderSet = wire.NewSet(
 var FAQProviderSet = wire.NewSet(
 	BaseProviderSet,
 
+	// Cache components for FAQ
+	CreateFAQKeyGenerator,
+	CreateFAQInvalidationConfig,
+	CreateFAQCacheManager,
+
 	// Repository
 	CreateFAQGenericRepository,
-	infraRepos.NewFAQRepository,
 	infraRepos.NewCachedFAQRepository,
 
 	// Application handlers aggregators
@@ -98,11 +102,14 @@ var FAQProviderSet = wire.NewSet(
 var TestimonialProviderSet = wire.NewSet(
 	BaseProviderSet,
 
+	// Cache components for Testimonial
+	CreateTestimonialKeyGenerator,
+	CreateTestimonialInvalidationConfig,
+	CreateTestimonialCacheManager,
+
 	// Repository
 	CreateTestimonialGenericRepository,
-
-	infraRepos.NewTestimonialRepository,
-	infraRepos.NewCachedFAQRepository,
+	infraRepos.NewCachedTestimonialRepository,
 
 	// Application handlers
 	appTestimonialHandlers.NewTestimonialCommandHandlers,
@@ -119,9 +126,9 @@ func InitializeFAQHTTPHandler(db *gorm.DB) *httpHandlers.FAQHTTPHandler {
 }
 
 // InitializeTestimonialHandler инициализирует HTTP обработчик Testimonials
-func InitializeTestimonialHandler(db *gorm.DB) *httpHandlers.TestimonialHandler {
+func InitializeTestimonialHandler(db *gorm.DB) *httpHandlers.TestimonialHTTPHandler {
 	wire.Build(TestimonialProviderSet)
-	return &httpHandlers.TestimonialHandler{}
+	return &httpHandlers.TestimonialHTTPHandler{}
 }
 
 // HandlerFactory фабрика для создания обработчиков
@@ -147,7 +154,7 @@ func (f *HandlerFactory) CreateFAQHandler() *httpHandlers.FAQHTTPHandler {
 }
 
 // CreateTestimonialHandler создает Testimonial обработчик
-func (f *HandlerFactory) CreateTestimonialHandler() *httpHandlers.TestimonialHandler {
+func (f *HandlerFactory) CreateTestimonialHandler() *httpHandlers.TestimonialHTTPHandler {
 	return InitializeTestimonialHandler(f.container.DB)
 }
 

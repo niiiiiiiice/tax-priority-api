@@ -19,7 +19,6 @@ func NewDeleteTestimonialCommandHandler(repo repositories.TestimonialRepository)
 }
 
 func (h *DeleteTestimonialCommandHandler) Handle(ctx context.Context, cmd dtos.DeleteTestimonialCommand) (*dtos.CommandResult, error) {
-	// Проверяем существование отзыва
 	testimonial, err := h.testimonialRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return &dtos.CommandResult{

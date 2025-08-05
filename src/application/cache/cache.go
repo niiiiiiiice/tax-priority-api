@@ -6,6 +6,22 @@ import (
 	"time"
 )
 
+type OperationType string
+
+const (
+	Set           OperationType = "set"
+	Get           OperationType = "get"
+	GetJSON       OperationType = "getJSON"
+	SetJSON       OperationType = "setJSON"
+	Delete        OperationType = "delete"
+	DeletePattern OperationType = "deletepattern"
+	Exists        OperationType = "exists"
+	SetNX         OperationType = "setNX"
+	Expire        OperationType = "expire"
+	TTL           OperationType = "ttl"
+	Clear         OperationType = "clear"
+)
+
 type Cache interface {
 	Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error
 	Get(ctx context.Context, key string) (string, error)
@@ -42,7 +58,7 @@ func NewCacheConfig() *CacheConfig {
 }
 
 type Error struct {
-	Operation string
+	Operation OperationType
 	Key       string
 	Err       error
 }
@@ -52,7 +68,7 @@ func (e *Error) Error() string {
 }
 
 // NewCacheError создает новую ошибку кеширования
-func NewCacheError(operation, key string, err error) *Error {
+func NewCacheError(operation OperationType, key string, err error) *Error {
 	return &Error{
 		Operation: operation,
 		Key:       key,

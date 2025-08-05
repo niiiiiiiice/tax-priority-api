@@ -9,7 +9,7 @@ import (
 type KeyGenerator[T any, ID comparable] interface {
 	GenerateKey(entity T) string
 	GenerateKeyByID(id ID) string
-	GenerateQueryKey(opts interface{}) string
+	GenerateQueryKey(queryType string, opts interface{}) string
 	GetPrefix() string
 }
 
@@ -39,10 +39,10 @@ func (g *DefaultKeyGenerator[T, ID]) GenerateKeyByID(id ID) string {
 	return fmt.Sprintf("%s:%s", g.prefix, g.stringify(id))
 }
 
-func (g *DefaultKeyGenerator[T, ID]) GenerateQueryKey(opts interface{}) string {
+func (g *DefaultKeyGenerator[T, ID]) GenerateQueryKey(queryType string, opts interface{}) string {
 	data, _ := json.Marshal(opts)
 	hash := sha256.Sum256(data)
-	return fmt.Sprintf("%s:query:%x", g.prefix, hash[:8])
+	return fmt.Sprintf("%s:%s:%x", g.prefix, queryType, hash[:8])
 }
 
 func (g *DefaultKeyGenerator[T, ID]) GetPrefix() string {

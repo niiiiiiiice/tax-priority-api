@@ -13,8 +13,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisCache реализация кеша для Redis
-type RedisCache struct {
+// Cache реализация кеша для Redis
+type Cache struct {
 	client *redis.Client
 	config *cache.CacheConfig
 	stats  *cache.Stats
@@ -22,7 +22,7 @@ type RedisCache struct {
 
 // NewRedisCache создает новый экземпляр Redis кеша
 func NewRedisCache(client *redis.Client, config *cache.CacheConfig) cache.Cache {
-	return &RedisCache{
+	return &Cache{
 		client: client,
 		config: config,
 		stats: &cache.Stats{
@@ -32,7 +32,7 @@ func NewRedisCache(client *redis.Client, config *cache.CacheConfig) cache.Cache 
 }
 
 // Set сохраняет значение в кеш
-func (r *RedisCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (r *Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	if !r.config.Enabled {
 		return nil
 	}
@@ -44,7 +44,7 @@ func (r *RedisCache) Set(ctx context.Context, key string, value interface{}, ttl
 	err := r.client.Set(ctx, key, value, ttl).Err()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("set", key, err)
+		return cache.NewCacheError(cache.Set, key, err)
 	}
 
 	atomic.AddInt64(&r.stats.Sets, 1)
@@ -52,19 +52,19 @@ func (r *RedisCache) Set(ctx context.Context, key string, value interface{}, ttl
 }
 
 // Get получает значение из кеша
-func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
+func (r *Cache) Get(ctx context.Context, key string) (string, error) {
 	if !r.config.Enabled {
-		return "", cache.NewCacheError("get", key, fmt.Errorf("cache disabled"))
+		return "", cache.NewCacheError(cache.Get, key, fmt.Errorf("cache disabled"))
 	}
 
 	value, err := r.client.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			atomic.AddInt64(&r.stats.Misses, 1)
-			return "", cache.NewCacheError("get", key, fmt.Errorf("key not found"))
+			return "", cache.NewCacheError(cache.Get, key, fmt.Errorf("key not found"))
 		}
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return "", cache.NewCacheError("get", key, err)
+		return "", cache.NewCacheError(cache.Get, key, err)
 	}
 
 	atomic.AddInt64(&r.stats.Hits, 1)
@@ -72,9 +72,9 @@ func (r *RedisCache) Get(ctx context.Context, key string) (string, error) {
 }
 
 // GetJSON получает JSON значение из кеша и десериализует его
-func (r *RedisCache) GetJSON(ctx context.Context, key string, dest interface{}) error {
+func (r *Cache) GetJSON(ctx context.Context, key string, dest interface{}) error {
 	if !r.config.Enabled {
-		return cache.NewCacheError("getjson", key, fmt.Errorf("cache disabled"))
+		return cache.NewCacheError(cache.GetJSON, key, fmt.Errorf("cache disabled"))
 	}
 
 	value, err := r.Get(ctx, key)
@@ -84,14 +84,14 @@ func (r *RedisCache) GetJSON(ctx context.Context, key string, dest interface{}) 
 
 	if err := json.Unmarshal([]byte(value), dest); err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("getjson", key, fmt.Errorf("failed to unmarshal JSON: %w", err))
+		return cache.NewCacheError(cache.GetJSON, key, fmt.Errorf("failed to unmarshal JSON: %w", err))
 	}
 
 	return nil
 }
 
 // SetJSON сериализует объект в JSON и сохраняет в кеш
-func (r *RedisCache) SetJSON(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (r *Cache) SetJSON(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	if !r.config.Enabled {
 		return nil
 	}
@@ -99,14 +99,14 @@ func (r *RedisCache) SetJSON(ctx context.Context, key string, value interface{},
 	jsonData, err := json.Marshal(value)
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("setjson", key, fmt.Errorf("failed to marshal JSON: %w", err))
+		return cache.NewCacheError(cache.SetJSON, key, fmt.Errorf("failed to marshal JSON: %w", err))
 	}
 
 	return r.Set(ctx, key, jsonData, ttl)
 }
 
 // Delete удаляет значение из кеша
-func (r *RedisCache) Delete(ctx context.Context, key string) error {
+func (r *Cache) Delete(ctx context.Context, key string) error {
 	if !r.config.Enabled {
 		return nil
 	}
@@ -114,7 +114,7 @@ func (r *RedisCache) Delete(ctx context.Context, key string) error {
 	err := r.client.Del(ctx, key).Err()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("delete", key, err)
+		return cache.NewCacheError(cache.Delete, key, err)
 	}
 
 	atomic.AddInt64(&r.stats.Deletes, 1)
@@ -122,7 +122,7 @@ func (r *RedisCache) Delete(ctx context.Context, key string) error {
 }
 
 // DeletePattern удаляет все ключи по паттерну
-func (r *RedisCache) DeletePattern(ctx context.Context, pattern string) error {
+func (r *Cache) DeletePattern(ctx context.Context, pattern string) error {
 	if !r.config.Enabled {
 		return nil
 	}
@@ -130,7 +130,7 @@ func (r *RedisCache) DeletePattern(ctx context.Context, pattern string) error {
 	keys, err := r.client.Keys(ctx, pattern).Result()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("deletepattern", pattern, err)
+		return cache.NewCacheError(cache.DeletePattern, pattern, err)
 	}
 
 	if len(keys) == 0 {
@@ -140,7 +140,7 @@ func (r *RedisCache) DeletePattern(ctx context.Context, pattern string) error {
 	err = r.client.Del(ctx, keys...).Err()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("deletepattern", pattern, err)
+		return cache.NewCacheError(cache.DeletePattern, pattern, err)
 	}
 
 	atomic.AddInt64(&r.stats.Deletes, int64(len(keys)))
@@ -148,7 +148,7 @@ func (r *RedisCache) DeletePattern(ctx context.Context, pattern string) error {
 }
 
 // Exists проверяет существование ключа
-func (r *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
+func (r *Cache) Exists(ctx context.Context, key string) (bool, error) {
 	if !r.config.Enabled {
 		return false, nil
 	}
@@ -156,13 +156,13 @@ func (r *RedisCache) Exists(ctx context.Context, key string) (bool, error) {
 	exists, err := r.client.Exists(ctx, key).Result()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return false, cache.NewCacheError("exists", key, err)
+		return false, cache.NewCacheError(cache.Exists, key, err)
 	}
 
 	return exists > 0, nil
 }
 
-func (r *RedisCache) SetNX(ctx context.Context, key string, value interface{}, ttl time.Duration) (bool, error) {
+func (r *Cache) SetNX(ctx context.Context, key string, value interface{}, ttl time.Duration) (bool, error) {
 	if !r.config.Enabled {
 		return false, nil
 	}
@@ -174,7 +174,7 @@ func (r *RedisCache) SetNX(ctx context.Context, key string, value interface{}, t
 	success, err := r.client.SetNX(ctx, key, value, ttl).Result()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return false, cache.NewCacheError("setnx", key, err)
+		return false, cache.NewCacheError(cache.SetNX, key, err)
 	}
 
 	if success {
@@ -184,7 +184,7 @@ func (r *RedisCache) SetNX(ctx context.Context, key string, value interface{}, t
 	return success, nil
 }
 
-func (r *RedisCache) Expire(ctx context.Context, key string, ttl time.Duration) error {
+func (r *Cache) Expire(ctx context.Context, key string, ttl time.Duration) error {
 	if !r.config.Enabled {
 		return nil
 	}
@@ -192,27 +192,27 @@ func (r *RedisCache) Expire(ctx context.Context, key string, ttl time.Duration) 
 	err := r.client.Expire(ctx, key, ttl).Err()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("expire", key, err)
+		return cache.NewCacheError(cache.Expire, key, err)
 	}
 
 	return nil
 }
 
-func (r *RedisCache) TTL(ctx context.Context, key string) (time.Duration, error) {
+func (r *Cache) TTL(ctx context.Context, key string) (time.Duration, error) {
 	if !r.config.Enabled {
-		return 0, cache.NewCacheError("ttl", key, fmt.Errorf("cache disabled"))
+		return 0, cache.NewCacheError(cache.TTL, key, fmt.Errorf("cache disabled"))
 	}
 
 	ttl, err := r.client.TTL(ctx, key).Result()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return 0, cache.NewCacheError("ttl", key, err)
+		return 0, cache.NewCacheError(cache.TTL, key, err)
 	}
 
 	return ttl, nil
 }
 
-func (r *RedisCache) Clear(ctx context.Context) error {
+func (r *Cache) Clear(ctx context.Context) error {
 	if !r.config.Enabled {
 		return nil
 	}
@@ -220,17 +220,17 @@ func (r *RedisCache) Clear(ctx context.Context) error {
 	err := r.client.FlushDB(ctx).Err()
 	if err != nil {
 		atomic.AddInt64(&r.stats.Errors, 1)
-		return cache.NewCacheError("clear", "all", err)
+		return cache.NewCacheError(cache.Clear, "all", err)
 	}
 
 	return nil
 }
 
-func (r *RedisCache) Close() error {
+func (r *Cache) Close() error {
 	return r.client.Close()
 }
 
-func (r *RedisCache) GetStats() *cache.Stats {
+func (r *Cache) GetStats() *cache.Stats {
 	r.stats.LastUpdated = time.Now()
 	return r.stats
 }

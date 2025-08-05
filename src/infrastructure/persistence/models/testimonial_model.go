@@ -25,7 +25,7 @@ type TestimonialModel struct {
 	UpdatedAt   time.Time  `gorm:"type:timestamp;autoUpdateTime" json:"updatedAt"`
 }
 
-func (TestimonialModel) TableName() string {
+func (*TestimonialModel) TableName() string {
 	return "testimonials"
 }
 
@@ -51,7 +51,7 @@ func (m *TestimonialModel) ToEntity() *entities.Testimonial {
 	}
 }
 
-func TestimonialFromEntity(entity *entities.Testimonial) *TestimonialModel {
+func NewTestimonialModelFromEntity(entity *entities.Testimonial) *TestimonialModel {
 	return &TestimonialModel{
 		ID:          entity.ID,
 		Content:     entity.Content,

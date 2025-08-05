@@ -3,15 +3,19 @@ package repositories
 import (
 	"context"
 	"fmt"
+	appCache "tax-priority-api/src/application/cache"
 	"tax-priority-api/src/application/models"
 	"tax-priority-api/src/application/repositories"
 	"tax-priority-api/src/domain/entities"
 	"tax-priority-api/src/infrastructure/cache"
+	"time"
 )
 
 type CachedGenericRepositoryImpl[T entities.Entity[ID], ID comparable] struct {
 	genericRepo  repositories.GenericRepository[T, ID]
 	cacheManager cache.CacheManager[T, ID]
+	keyGen       appCache.KeyGenerator[T, ID]
+	config       *appCache.CacheConfig
 }
 
 func NewCachedGenericRepository[T entities.Entity[ID], ID comparable](
@@ -149,7 +153,6 @@ func (r *CachedGenericRepositoryImpl[T, ID]) SoftDelete(ctx context.Context, id 
 		return err
 	}
 
-	// Инвалидируем через менеджер
 	_ = r.cacheManager.InvalidateByID(ctx, id)
 	if !isZero(entity) {
 		_ = r.cacheManager.Invalidate(ctx, entity)
@@ -162,8 +165,7 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindAll(ctx context.Context, opts *
 	cacheKey := r.keyGen.GenerateQueryKey("all", opts)
 	ttl := r.determineTTL(opts)
 
-	// Используем QueryCacheManager для кеширования запросов
-	result, err := r.cacheManager.GetOrLoad(ctx, cacheKey, func() (interface{}, error) {
+	result, err := r.cacheManager.GetQuery(ctx, cacheKey, func() (interface{}, error) {
 		return r.genericRepo.FindAll(ctx, opts)
 	}, ttl)
 
@@ -172,25 +174,25 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindAll(ctx context.Context, opts *
 	}
 
 	// Преобразование типа
-	entities, ok := result.([]T)
+	foundEntities, ok := result.([]T)
 	if !ok {
 		return r.genericRepo.FindAll(ctx, opts)
 	}
 
 	// Кешируем отдельные сущности асинхронно
 	go func() {
-		for _, entity := range entities {
+		for _, entity := range foundEntities {
 			_ = r.cacheManager.Set(ctx, entity, r.config.DefaultTTL)
 		}
 	}()
 
-	return entities, nil
+	return foundEntities, nil
 }
 
 func (r *CachedGenericRepositoryImpl[T, ID]) FindOne(ctx context.Context, opts *models.QueryOptions) (T, error) {
 	cacheKey := r.keyGen.GenerateQueryKey("one", opts)
 
-	result, err := r.queryCache.GetOrLoad(ctx, cacheKey, func() (interface{}, error) {
+	result, err := r.cacheManager.GetQuery(ctx, cacheKey, func() (interface{}, error) {
 		return r.genericRepo.FindOne(ctx, opts)
 	}, r.config.ShortTTL)
 
@@ -214,7 +216,7 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindOne(ctx context.Context, opts *
 func (r *CachedGenericRepositoryImpl[T, ID]) FindWithPagination(ctx context.Context, opts *models.QueryOptions) (*models.PaginatedResult[T], error) {
 	cacheKey := r.keyGen.GenerateQueryKey("paginated", opts)
 
-	result, err := r.queryCache.GetOrLoad(ctx, cacheKey, func() (interface{}, error) {
+	result, err := r.cacheManager.GetQuery(ctx, cacheKey, func() (interface{}, error) {
 		return r.genericRepo.FindWithPagination(ctx, opts)
 	}, r.config.ShortTTL)
 
@@ -241,7 +243,7 @@ func (r *CachedGenericRepositoryImpl[T, ID]) FindWithPagination(ctx context.Cont
 func (r *CachedGenericRepositoryImpl[T, ID]) Count(ctx context.Context, filters map[string]interface{}) (int64, error) {
 	cacheKey := r.keyGen.GenerateQueryKey("count", filters)
 
-	result, err := r.queryCache.GetOrLoad(ctx, cacheKey, func() (interface{}, error) {
+	result, err := r.cacheManager.GetQuery(ctx, cacheKey, func() (interface{}, error) {
 		return r.genericRepo.Count(ctx, filters)
 	}, r.config.ShortTTL)
 
@@ -288,16 +290,13 @@ func (r *CachedGenericRepositoryImpl[T, ID]) WithTransaction(ctx context.Context
 func (r *CachedGenericRepositoryImpl[T, ID]) Refresh(ctx context.Context, entity T) error {
 	id := entity.GetID()
 
-	// Инвалидируем кеш через менеджер
 	_ = r.cacheManager.InvalidateByID(ctx, id)
 
-	// Обновляем из базы
 	err := r.genericRepo.Refresh(ctx, entity)
 	if err != nil {
 		return err
 	}
 
-	// Кешируем обновленную сущность
 	_ = r.cacheManager.Set(ctx, entity, r.config.DefaultTTL)
 
 	return nil
@@ -309,14 +308,11 @@ func (r *CachedGenericRepositoryImpl[T, ID]) Clear(ctx context.Context) error {
 		return err
 	}
 
-	// Полная очистка через менеджер
 	return r.cacheManager.InvalidateAll(ctx)
 }
 
 func (r *CachedGenericRepositoryImpl[T, ID]) invalidateAggregatedQueries(ctx context.Context) error {
-	// Получаем префикс из генератора ключей
-	sampleKey := r.keyGen.GenerateKeyByID(*new(ID))
-	prefix := sampleKey[:3] // Берем префикс (например, "use" от "user")
+	prefix := r.keyGen.GetPrefix()
 
 	patterns := []string{
 		fmt.Sprintf("%s:all:*", prefix),
@@ -325,12 +321,18 @@ func (r *CachedGenericRepositoryImpl[T, ID]) invalidateAggregatedQueries(ctx con
 		fmt.Sprintf("%s:one:*", prefix),
 	}
 
-	// Делегируем инвалидацию менеджеру
 	for _, pattern := range patterns {
-		_ = r.queryCache.InvalidatePattern(ctx, pattern)
+		_ = r.cacheManager.InvalidatePattern(ctx, pattern)
 	}
 
 	return nil
+}
+
+func (r *CachedGenericRepositoryImpl[T, ID]) determineTTL(opts *models.QueryOptions) time.Duration {
+	if opts != nil && (opts.Filters != nil || opts.Pagination != nil) {
+		return r.config.ShortTTL
+	}
+	return r.config.DefaultTTL
 }
 
 func isZero[T any](v T) bool {

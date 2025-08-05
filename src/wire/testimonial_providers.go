@@ -1,30 +1,23 @@
 package wire
 
 import (
-	"tax-priority-api/src/application/repositories"
-	"tax-priority-api/src/application/testimonial/handlers"
-	persistenceRepos "tax-priority-api/src/infrastructure/persistence/repositories"
-	presentationHandlers "tax-priority-api/src/presentation/handlers"
-
 	"gorm.io/gorm"
+	appRepos "tax-priority-api/src/application/repositories"
+	"tax-priority-api/src/domain/entities"
+	infraModels "tax-priority-api/src/infrastructure/persistence/models"
+	infraRepos "tax-priority-api/src/infrastructure/persistence/repositories"
 )
 
-// TestimonialProviders предоставляет зависимости для testimonials
-func ProvideTestimonialRepository(db *gorm.DB) repositories.TestimonialRepository {
-	return persistenceRepos.NewTestimonialRepository(db)
-}
-
-func ProvideTestimonialCommandHandlers(repo repositories.TestimonialRepository) *handlers.TestimonialCommandHandlers {
-	return handlers.NewTestimonialCommandHandlers(repo)
-}
-
-func ProvideTestimonialQueryHandlers(repo repositories.TestimonialRepository) *handlers.TestimonialQueryHandlers {
-	return handlers.NewTestimonialQueryHandlers(repo)
-}
-
-func ProvideTestimonialHandler(
-	commandHandlers *handlers.TestimonialCommandHandlers,
-	queryHandlers *handlers.TestimonialQueryHandlers,
-) *presentationHandlers.TestimonialHTTPHandler {
-	return presentationHandlers.NewTestimonialHandler(commandHandlers, queryHandlers)
+func CreateTestimonialGenericRepository(db *gorm.DB) appRepos.GenericRepository[*entities.Testimonial, string] {
+	domainToModel := func(entity *entities.Testimonial) *infraModels.TestimonialModel {
+		return infraModels.NewTestimonialModelFromEntity(entity)
+	}
+	modelToDomain := func(model *infraModels.TestimonialModel) *entities.Testimonial {
+		return model.ToEntity()
+	}
+	return infraRepos.NewGenericRepository(
+		db,
+		domainToModel,
+		modelToDomain,
+	)
 }

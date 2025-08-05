@@ -58,21 +58,3 @@ func NewFAQModelFromEntity(faq *entities.FAQ) *FAQModel {
 	model.FromEntity(faq)
 	return model
 }
-
-// ToEntities преобразует slice GORM моделей в slice domain entities
-func ToFAQEntities(models []*FAQModel) []*entities.FAQ {
-	entities := make([]*entities.FAQ, len(models))
-	for i, model := range models {
-		entities[i] = model.ToEntity()
-	}
-	return entities
-}
-
-// FromEntities создает slice GORM моделей из slice domain entities
-func FromFAQEntities(faqs []*entities.FAQ) []*FAQModel {
-	models := make([]*FAQModel, len(faqs))
-	for i, faq := range faqs {
-		models[i] = NewFAQModelFromEntity(faq)
-	}
-	return models
-}

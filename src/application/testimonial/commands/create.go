@@ -22,7 +22,6 @@ func NewCreateTestimonialCommandHandler(repo repositories.TestimonialRepository)
 }
 
 func (h *CreateTestimonialCommandHandler) Handle(ctx context.Context, cmd dtos.CreateTestimonialCommand) (*dtos.CommandResult, error) {
-	// Создаем новый отзыв
 	testimonial := entities.NewTestimonial(
 		cmd.Content,
 		cmd.Author,
@@ -30,10 +29,8 @@ func (h *CreateTestimonialCommandHandler) Handle(ctx context.Context, cmd dtos.C
 		cmd.Rating,
 	)
 
-	// Генерируем ID
 	testimonial.SetID(uuid.New().String())
 
-	// Устанавливаем дополнительные поля
 	if cmd.Company != "" {
 		testimonial.Company = cmd.Company
 	}
@@ -41,7 +38,6 @@ func (h *CreateTestimonialCommandHandler) Handle(ctx context.Context, cmd dtos.C
 		testimonial.Position = cmd.Position
 	}
 
-	// Сохраняем в репозиторий
 	if err := h.testimonialRepo.Create(ctx, testimonial); err != nil {
 		return &dtos.CommandResult{
 			Success:   false,

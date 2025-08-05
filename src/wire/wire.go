@@ -12,7 +12,8 @@ import (
 
 	appCache "tax-priority-api/src/application/cache"
 	appEvents "tax-priority-api/src/application/events"
-	appHandlers "tax-priority-api/src/application/faq/handlers"
+	appFaqHandlers "tax-priority-api/src/application/faq/handlers"
+	appTestimonialHandlers "tax-priority-api/src/application/testimonial/handlers"
 	infraCache "tax-priority-api/src/infrastructure/cache"
 	infraEvents "tax-priority-api/src/infrastructure/events"
 	infraPersistence "tax-priority-api/src/infrastructure/persistence"
@@ -64,7 +65,6 @@ var BaseProviderSet = wire.NewSet(
 	// Redis
 	infraPersistence.NewRedisConfig,
 	CreateRedisClient,
-	infraPersistence.NewRedisKeys,
 
 	// Cache
 	appCache.NewCacheConfig,
@@ -87,8 +87,8 @@ var FAQProviderSet = wire.NewSet(
 	infraRepos.NewCachedFAQRepository,
 
 	// Application handlers aggregators
-	appHandlers.NewFAQCommandHandlers,
-	appHandlers.NewFAQQueryHandlers,
+	appFaqHandlers.NewFAQCommandHandlers,
+	appFaqHandlers.NewFAQQueryHandlers,
 
 	// HTTP handler
 	httpHandlers.NewFAQHTTPHandler,
@@ -99,17 +99,17 @@ var TestimonialProviderSet = wire.NewSet(
 	BaseProviderSet,
 
 	// Repository
-	ProvideTestimonialRepository,
+	CreateTestimonialGenericRepository,
 
 	infraRepos.NewTestimonialRepository,
-	infraRepos.NewCachedFAQRepository(),
+	infraRepos.NewCachedFAQRepository,
 
 	// Application handlers
-	ProvideTestimonialCommandHandlers,
-	ProvideTestimonialQueryHandlers,
+	appTestimonialHandlers.NewTestimonialCommandHandlers,
+	appTestimonialHandlers.NewTestimonialQueryHandlers,
 
 	// HTTP handler
-	ProvideTestimonialHandler,
+	httpHandlers.NewTestimonialHandler,
 )
 
 // HandlerFactory фабрика для создания обработчиков

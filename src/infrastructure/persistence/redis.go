@@ -47,35 +47,3 @@ func ConnectRedis(config *RedisConfig) (*redis.Client, error) {
 	log.Printf("Successfully connected to Redis at %s:%d", config.Host, config.Port)
 	return client, nil
 }
-
-type RedisKeys struct {
-	FAQByID       string
-	FAQByCategory string
-	FAQActive     string
-	FAQCount      string
-	FAQCategories string
-	FAQSearch     string
-}
-
-func NewRedisKeys() *RedisKeys {
-	return &RedisKeys{
-		FAQByID:       "faq:id:%s",
-		FAQByCategory: "faq:category:%s",
-		FAQActive:     "faq:active",
-		FAQCount:      "faq:count",
-		FAQCategories: "faq:categories",
-		FAQSearch:     "faq:search:%s",
-	}
-}
-
-func (r *RedisKeys) GetFAQByIDKey(id string) string {
-	return fmt.Sprintf(r.FAQByID, id)
-}
-
-func (r *RedisKeys) GetFAQByCategoryKey(category string) string {
-	return fmt.Sprintf(r.FAQByCategory, category)
-}
-
-func (r *RedisKeys) GetFAQSearchKey(query string) string {
-	return fmt.Sprintf(r.FAQSearch, query)
-}

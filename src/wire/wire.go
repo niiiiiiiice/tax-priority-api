@@ -31,15 +31,6 @@ type DependencyContainer struct {
 	Cache               appCache.Cache
 }
 
-// CreateRedisClient создает Redis клиента для Wire (без ошибки)
-func CreateRedisClient(config *infraPersistence.RedisConfig) *redis.Client {
-	client, err := infraPersistence.ConnectRedis(config)
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
-	return client
-}
-
 // NewDependencyContainer создает контейнер зависимостей
 func NewDependencyContainer(
 	db *gorm.DB,
@@ -55,6 +46,15 @@ func NewDependencyContainer(
 		NotificationService: notificationService,
 		Cache:               cache,
 	}
+}
+
+// CreateRedisClient создает Redis клиента для Wire (без ошибки)
+func CreateRedisClient(config *infraPersistence.RedisConfig) *redis.Client {
+	client, err := infraPersistence.ConnectRedis(config)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	return client
 }
 
 // BaseProviderSet базовый набор провайдеров для всех модулей
@@ -109,8 +109,20 @@ var TestimonialProviderSet = wire.NewSet(
 	appTestimonialHandlers.NewTestimonialQueryHandlers,
 
 	// HTTP handler
-	httpHandlers.NewTestimonialHandler,
+	httpHandlers.NewTestimonialHTTPHandler,
 )
+
+// InitializeFAQHTTPHandler инициализирует HTTP обработчик FAQ
+func InitializeFAQHTTPHandler(db *gorm.DB) *httpHandlers.FAQHTTPHandler {
+	wire.Build(FAQProviderSet)
+	return &httpHandlers.FAQHTTPHandler{}
+}
+
+// InitializeTestimonialHandler инициализирует HTTP обработчик Testimonials
+func InitializeTestimonialHandler(db *gorm.DB) *httpHandlers.TestimonialHandler {
+	wire.Build(TestimonialProviderSet)
+	return &httpHandlers.TestimonialHandler{}
+}
 
 // HandlerFactory фабрика для создания обработчиков
 type HandlerFactory struct {
@@ -124,14 +136,14 @@ func NewHandlerFactory(container *DependencyContainer) *HandlerFactory {
 	}
 }
 
-// CreateFAQHandler создает FAQ обработчик
-func (f *HandlerFactory) CreateFAQHandler() *httpHandlers.FAQHTTPHandler {
-	return InitializeFAQHTTPHandler(f.container.DB)
-}
-
 // CreateWebSocketHandler создает WebSocket обработчик
 func (f *HandlerFactory) CreateWebSocketHandler() *httpHandlers.WebSocketHandler {
 	return httpHandlers.NewWebSocketHandler(f.container.Hub, f.container.NotificationService)
+}
+
+// CreateFAQHandler создает FAQ обработчик
+func (f *HandlerFactory) CreateFAQHandler() *httpHandlers.FAQHTTPHandler {
+	return InitializeFAQHTTPHandler(f.container.DB)
 }
 
 // CreateTestimonialHandler создает Testimonial обработчик
@@ -143,22 +155,4 @@ func (f *HandlerFactory) CreateTestimonialHandler() *httpHandlers.TestimonialHan
 func InitializeHandlerFactory(db *gorm.DB) *HandlerFactory {
 	wire.Build(BaseProviderSet, NewHandlerFactory)
 	return &HandlerFactory{}
-}
-
-// InitializeDependencyContainer инициализирует контейнер зависимостей
-func InitializeDependencyContainer(db *gorm.DB) *DependencyContainer {
-	wire.Build(BaseProviderSet)
-	return &DependencyContainer{}
-}
-
-// InitializeFAQHTTPHandler инициализирует HTTP обработчик FAQ
-func InitializeFAQHTTPHandler(db *gorm.DB) *httpHandlers.FAQHTTPHandler {
-	wire.Build(FAQProviderSet)
-	return &httpHandlers.FAQHTTPHandler{}
-}
-
-// InitializeTestimonialHandler инициализирует HTTP обработчик Testimonials
-func InitializeTestimonialHandler(db *gorm.DB) *httpHandlers.TestimonialHandler {
-	wire.Build(TestimonialProviderSet)
-	return &httpHandlers.TestimonialHandler{}
 }

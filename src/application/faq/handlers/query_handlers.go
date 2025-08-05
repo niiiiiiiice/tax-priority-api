@@ -6,27 +6,17 @@ import (
 )
 
 type FAQQueryHandlers struct {
-	GetActive     *queries.GetActiveFAQsQueryHandler
-	GetByCategory *queries.GetFAQsByCategoryQueryHandler
-	GetByID       *queries.GetFAQByIDQueryHandler
-	GetByIDs      *queries.GetFAQsByIDsQueryHandler
-	GetByPriority *queries.GetFAQsByPriorityQueryHandler
-	GetCategories *queries.GetFAQCategoriesQueryHandler
-	GetCount      *queries.GetFAQCountQueryHandler
-	GetMany       *queries.GetFAQsQueryHandler
-	Search        *queries.SearchFAQsQueryHandler
+	GetByID  *queries.GetFAQByIDQueryHandler
+	GetByIDs *queries.GetFAQsByIDsQueryHandler
+	GetCount *queries.GetFAQCountQueryHandler
+	GetMany  *queries.GetFAQsQueryHandler
 }
 
 func NewFAQQueryHandlers(repo repositories.CachedFAQRepository) *FAQQueryHandlers {
 	return &FAQQueryHandlers{
-		GetActive:     queries.NewGetActiveFAQsQueryHandler(repo),
-		GetByCategory: queries.NewGetFAQsByCategoryQueryHandler(repo),
-		GetByID:       queries.NewGetFAQByIDQueryHandler(repo),
-		GetByIDs:      queries.NewGetFAQsByIDsQueryHandler(repo),
-		GetByPriority: queries.NewGetFAQsByPriorityQueryHandler(repo),
-		GetCategories: queries.NewGetFAQCategoriesQueryHandler(repo),
-		GetCount:      queries.NewGetFAQCountQueryHandler(repo),
-		GetMany:       queries.NewGetFAQsQueryHandler(repo),
-		Search:        queries.NewSearchFAQsQueryHandler(repo),
+		GetByID:  queries.NewGetFAQByIDQueryHandler(repo),
+		GetByIDs: queries.NewGetFAQsByIDsQueryHandler(repo),
+		GetCount: queries.NewGetFAQCountQueryHandler(repo),
+		GetMany:  queries.NewGetFAQsQueryHandler(repo),
 	}
 }

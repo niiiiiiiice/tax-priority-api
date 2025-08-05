@@ -9,8 +9,6 @@ import (
 type FAQCommandHandlers struct {
 	Activate       *commands.ActivateFAQCommandHandler
 	BulkDelete     *commands.BulkDeleteFAQCommandHandler
-	Create         *commands.CreateFAQCommandHandler
-	CreateBatch    *commands.CreateFAQBatchCommandHandler
 	Deactivate     *commands.DeactivateFAQCommandHandler
 	Delete         *commands.DeleteFAQCommandHandler
 	Update         *commands.UpdateFAQCommandHandler
@@ -22,8 +20,6 @@ func NewFAQCommandHandlers(repo repositories.CachedFAQRepository, notificationSe
 	return &FAQCommandHandlers{
 		Activate:       commands.NewActivateFAQCommandHandler(repo, notificationService),
 		BulkDelete:     commands.NewBulkDeleteFAQCommandHandler(repo, notificationService),
-		Create:         commands.NewCreateFAQCommandHandler(repo, notificationService),
-		CreateBatch:    commands.NewCreateFAQBatchCommandHandler(repo, notificationService),
 		Deactivate:     commands.NewDeactivateFAQCommandHandler(repo, notificationService),
 		Delete:         commands.NewDeleteFAQCommandHandler(repo, notificationService),
 		Update:         commands.NewUpdateFAQCommandHandler(repo, notificationService),

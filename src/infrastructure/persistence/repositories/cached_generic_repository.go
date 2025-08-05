@@ -20,11 +20,15 @@ type CachedGenericRepositoryImpl[T entities.Entity[ID], ID comparable] struct {
 
 func NewCachedGenericRepository[T entities.Entity[ID], ID comparable](
 	genericRepo repositories.GenericRepository[T, ID],
-	cacheManager cache.CacheManager[T, ID]) repositories.GenericRepository[T, ID] {
+	cacheManager cache.CacheManager[T, ID],
+	keyGen appCache.KeyGenerator[T, ID],
+	config *appCache.CacheConfig) repositories.GenericRepository[T, ID] {
 
 	return &CachedGenericRepositoryImpl[T, ID]{
 		genericRepo:  genericRepo,
 		cacheManager: cacheManager,
+		keyGen:       keyGen,
+		config:       config,
 	}
 }
 

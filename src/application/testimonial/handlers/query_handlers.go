@@ -12,7 +12,7 @@ type TestimonialQueryHandlers struct {
 	GetByIDHandler *queries.GetTestimonialByIDQueryHandler
 }
 
-func NewTestimonialQueryHandlers(repo repositories.TestimonialRepository) *TestimonialQueryHandlers {
+func NewTestimonialQueryHandlers(repo repositories.CachedTestimonialRepository) *TestimonialQueryHandlers {
 	return &TestimonialQueryHandlers{
 		GetManyHandler: queries.NewGetTestimonialsQueryHandler(repo),
 		GetByIDHandler: queries.NewGetTestimonialByIDQueryHandler(repo),

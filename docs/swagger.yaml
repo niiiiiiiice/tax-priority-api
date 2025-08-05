@@ -59,29 +59,6 @@ definitions:
     - approvedBy
     - id
     type: object
-  tax-priority-api_src_application_testimonial_dtos.BulkApproveTestimonialsCommand:
-    properties:
-      approvedBy:
-        type: string
-      ids:
-        items:
-          type: string
-        minItems: 1
-        type: array
-    required:
-    - approvedBy
-    - ids
-    type: object
-  tax-priority-api_src_application_testimonial_dtos.BulkDeleteTestimonialsCommand:
-    properties:
-      ids:
-        items:
-          type: string
-        minItems: 1
-        type: array
-    required:
-    - ids
-    type: object
   tax-priority-api_src_application_testimonial_dtos.CommandResult:
     properties:
       data: {}
@@ -241,15 +218,6 @@ definitions:
     required:
     - ids
     type: object
-  tax-priority-api_src_presentation_models.CategoryResponse:
-    properties:
-      count:
-        example: 25
-        type: integer
-      name:
-        example: налоги
-        type: string
-    type: object
   tax-priority-api_src_presentation_models.CommandResult:
     properties:
       createdAt:
@@ -276,32 +244,6 @@ definitions:
       count:
         example: 42
         type: integer
-    type: object
-  tax-priority-api_src_presentation_models.CreateFAQRequest:
-    properties:
-      answer:
-        example: Для подачи налоговой декларации необходимо...
-        maxLength: 2000
-        minLength: 10
-        type: string
-      category:
-        example: налоги
-        maxLength: 100
-        type: string
-      priority:
-        example: 50
-        maximum: 100
-        minimum: 0
-        type: integer
-      question:
-        example: Как подать налоговую декларацию?
-        maxLength: 500
-        minLength: 10
-        type: string
-    required:
-    - answer
-    - category
-    - question
     type: object
   tax-priority-api_src_presentation_models.ErrorResponse:
     properties:
@@ -473,35 +415,6 @@ paths:
           schema:
             $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить список FAQ
-      tags:
-      - FAQ
-    post:
-      consumes:
-      - application/json
-      description: Создает новую запись FAQ
-      parameters:
-      - description: Данные FAQ
-        in: body
-        name: faq
-        required: true
-        schema:
-          $ref: '#/definitions/tax-priority-api_src_presentation_models.CreateFAQRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-      summary: Создать FAQ
       tags:
       - FAQ
   /api/faq/{id}:
@@ -758,88 +671,6 @@ paths:
       summary: Массовое удаление FAQ
       tags:
       - FAQ
-  /api/faq/categories:
-    get:
-      description: Возвращает список категорий FAQ
-      parameters:
-      - default: false
-        description: Включить количество FAQ в каждой категории
-        in: query
-        name: withCounts
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/tax-priority-api_src_presentation_models.CategoryResponse'
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-      summary: Получить категории FAQ
-      tags:
-      - FAQ
-  /api/faq/category/{category}:
-    get:
-      description: Возвращает FAQ определенной категории
-      parameters:
-      - description: Категория FAQ
-        in: path
-        name: category
-        required: true
-        type: string
-      - default: 10
-        description: Лимит записей
-        in: query
-        name: _limit
-        type: integer
-      - default: 0
-        description: Смещение
-        in: query
-        name: _offset
-        type: integer
-      - default: priority
-        description: Поле сортировки
-        in: query
-        name: _sort
-        type: string
-      - default: desc
-        description: Порядок сортировки
-        enum:
-        - asc
-        - desc
-        in: query
-        name: _order
-        type: string
-      - default: false
-        description: Только активные FAQ
-        in: query
-        name: activeOnly
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-      summary: Получить FAQ по категории
-      tags:
-      - FAQ
   /api/faq/count:
     get:
       description: Возвращает общее количество FAQ
@@ -864,67 +695,6 @@ paths:
           schema:
             $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить количество FAQ
-      tags:
-      - FAQ
-  /api/faq/search:
-    get:
-      description: Выполняет поиск FAQ по тексту
-      parameters:
-      - description: Поисковый запрос
-        in: query
-        name: q
-        required: true
-        type: string
-      - description: Категория для поиска
-        in: query
-        name: category
-        type: string
-      - default: 10
-        description: Лимит записей
-        in: query
-        name: _limit
-        type: integer
-      - default: 0
-        description: Смещение
-        in: query
-        name: _offset
-        type: integer
-      - default: priority
-        description: Поле сортировки
-        in: query
-        name: _sort
-        type: string
-      - default: desc
-        description: Порядок сортировки
-        enum:
-        - asc
-        - desc
-        in: query
-        name: _order
-        type: string
-      - default: false
-        description: Только активные FAQ
-        in: query
-        name: activeOnly
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/tax-priority-api_src_presentation_models.FAQResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-      summary: Поиск FAQ
       tags:
       - FAQ
   /testimonials:
@@ -1169,128 +939,6 @@ paths:
           schema:
             $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
       summary: Одобрить отзыв
-      tags:
-      - testimonials
-  /testimonials/approved:
-    get:
-      consumes:
-      - application/json
-      description: Получает список одобренных и активных отзывов
-      parameters:
-      - default: 10
-        description: Лимит записей
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Смещение
-        in: query
-        name: offset
-        type: integer
-      - default: '"createdAt"'
-        description: Поле для сортировки
-        in: query
-        name: sortBy
-        type: string
-      - default: '"desc"'
-        description: Порядок сортировки
-        enum:
-        - asc
-        - desc
-        in: query
-        name: sortOrder
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
-      summary: Получить одобренные отзывы
-      tags:
-      - testimonials
-  /testimonials/bulk/approve:
-    patch:
-      consumes:
-      - application/json
-      description: Одобряет несколько отзывов одновременно
-      parameters:
-      - description: Данные для массового одобрения
-        in: body
-        name: bulkApprove
-        required: true
-        schema:
-          $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.BulkApproveTestimonialsCommand'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
-      summary: Массово одобрить отзывы
-      tags:
-      - testimonials
-  /testimonials/bulk/delete:
-    delete:
-      consumes:
-      - application/json
-      description: Удаляет несколько отзывов одновременно
-      parameters:
-      - description: Данные для массового удаления
-        in: body
-        name: bulkDelete
-        required: true
-        schema:
-          $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.BulkDeleteTestimonialsCommand'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.CommandResult'
-      summary: Массово удалить отзывы
-      tags:
-      - testimonials
-  /testimonials/stats:
-    get:
-      consumes:
-      - application/json
-      description: Получает статистику по отзывам (количество, рейтинги и т.д.)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_application_testimonial_dtos.QueryResult'
-      summary: Получить статистику отзывов
       tags:
       - testimonials
   /ws:

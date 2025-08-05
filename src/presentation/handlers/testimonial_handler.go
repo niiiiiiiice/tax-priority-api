@@ -21,7 +21,7 @@ type TestimonialHTTPHandler struct {
 	queryHandlers   *handlers.TestimonialQueryHandlers
 }
 
-func NewTestimonialHandler(
+func NewTestimonialHTTPHandler(
 	commandHandlers *handlers.TestimonialCommandHandlers,
 	queryHandlers *handlers.TestimonialQueryHandlers,
 ) *TestimonialHTTPHandler {
@@ -250,67 +250,6 @@ func (h *TestimonialHTTPHandler) GetTestimonialByID(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// GetApprovedTestimonials получает одобренные отзывы
-// @Summary Получить одобренные отзывы
-// @Description Получает список одобренных и активных отзывов
-// @Tags testimonials
-// @Accept json
-// @Produce json
-// @Param limit query int false "Лимит записей" default(10)
-// @Param offset query int false "Смещение" default(0)
-// @Param sortBy query string false "Поле для сортировки" default("createdAt")
-// @Param sortOrder query string false "Порядок сортировки" Enums(asc, desc) default("desc")
-// @Success 200 {object} dtos.QueryResult
-// @Failure 500 {object} dtos.QueryResult
-// @Router /testimonials/approved [get]
-func (h *TestimonialHTTPHandler) GetApprovedTestimonials(c *gin.Context) {
-	var query dtos.GetApprovedTestimonialsQuery
-
-	// Парсим параметры запроса
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil {
-			query.Limit = limit
-		}
-	}
-
-	if offsetStr := c.Query("offset"); offsetStr != "" {
-		if offset, err := strconv.Atoi(offsetStr); err == nil {
-			query.Offset = offset
-		}
-	}
-
-	query.SortBy = c.Query("sortBy")
-	query.SortOrder = c.Query("sortOrder")
-
-	result, err := h.queryHandlers.GetApprovedTestimonials(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, result)
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-// GetTestimonialStats получает статистику отзывов
-// @Summary Получить статистику отзывов
-// @Description Получает статистику по отзывам (количество, рейтинги и т.д.)
-// @Tags testimonials
-// @Accept json
-// @Produce json
-// @Success 200 {object} dtos.QueryResult
-// @Failure 500 {object} dtos.QueryResult
-// @Router /testimonials/stats [get]
-func (h *TestimonialHTTPHandler) GetTestimonialStats(c *gin.Context) {
-	query := dtos.GetTestimonialStatsQuery{}
-	result, err := h.queryHandlers.GetTestimonialStats(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, result)
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
 // UpdateTestimonial обновляет отзыв
 // @Summary Обновить отзыв
 // @Description Обновляет существующий отзыв
@@ -419,74 +358,10 @@ func (h *TestimonialHTTPHandler) DeleteTestimonial(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// BulkApproveTestimonials массово одобряет отзывы
-// @Summary Массово одобрить отзывы
-// @Description Одобряет несколько отзывов одновременно
-// @Tags testimonials
-// @Accept json
-// @Produce json
-// @Param bulkApprove body dtos.BulkApproveTestimonialsCommand true "Данные для массового одобрения"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 400 {object} dtos.CommandResult
-// @Failure 500 {object} dtos.CommandResult
-// @Router /testimonials/bulk/approve [patch]
-func (h *TestimonialHTTPHandler) BulkApproveTestimonials(c *gin.Context) {
-	var cmd dtos.BulkApproveTestimonialsCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		c.JSON(http.StatusBadRequest, dtos.CommandResult{
-			Success:   false,
-			Error:     err.Error(),
-			Timestamp: time.Now(),
-		})
-		return
-	}
-
-	result, err := h.commandHandlers.BulkApproveTestimonials(c.Request.Context(), cmd)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, result)
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
-// BulkDeleteTestimonials массово удаляет отзывы
-// @Summary Массово удалить отзывы
-// @Description Удаляет несколько отзывов одновременно
-// @Tags testimonials
-// @Accept json
-// @Produce json
-// @Param bulkDelete body dtos.BulkDeleteTestimonialsCommand true "Данные для массового удаления"
-// @Success 200 {object} dtos.CommandResult
-// @Failure 400 {object} dtos.CommandResult
-// @Failure 500 {object} dtos.CommandResult
-// @Router /testimonials/bulk/delete [delete]
-func (h *TestimonialHTTPHandler) BulkDeleteTestimonials(c *gin.Context) {
-	var cmd dtos.BulkDeleteTestimonialsCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		c.JSON(http.StatusBadRequest, dtos.CommandResult{
-			Success:   false,
-			Error:     err.Error(),
-			Timestamp: time.Now(),
-		})
-		return
-	}
-
-	result, err := h.commandHandlers.BulkDeleteTestimonials(c.Request.Context(), cmd)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, result)
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
-}
-
 func RegisterTestimonialRoutes(router *gin.Engine, handler *TestimonialHTTPHandler) {
 	testimonialGroup := router.Group("/testimonials")
 	{
 		// Публичные маршруты
-		testimonialGroup.GET("/approved", handler.GetApprovedTestimonials)
-		testimonialGroup.GET("/stats", handler.GetTestimonialStats)
 		testimonialGroup.POST("", handler.CreateTestimonial)
 
 		// Маршруты для управления отзывами
@@ -496,11 +371,5 @@ func RegisterTestimonialRoutes(router *gin.Engine, handler *TestimonialHTTPHandl
 		testimonialGroup.DELETE("/:id", handler.DeleteTestimonial)
 		testimonialGroup.PATCH("/:id/approve", handler.ApproveTestimonial)
 
-		// Массовые операции
-		bulkGroup := testimonialGroup.Group("/bulk")
-		{
-			bulkGroup.PATCH("/approve", handler.BulkApproveTestimonials)
-			bulkGroup.DELETE("/delete", handler.BulkDeleteTestimonials)
-		}
 	}
 }

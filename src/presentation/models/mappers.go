@@ -5,16 +5,6 @@ import (
 	"tax-priority-api/src/application/faq/queries"
 )
 
-// ToCreateFAQCommand преобразует HTTP-модель в команду создания FAQ
-func (r *CreateFAQRequest) ToCreateFAQCommand() commands.CreateFAQCommand {
-	return commands.CreateFAQCommand{
-		Question: r.Question,
-		Answer:   r.Answer,
-		Category: r.Category,
-		Priority: r.Priority,
-	}
-}
-
 // ToUpdateFAQCommand преобразует HTTP-модель в команду обновления FAQ
 func (r *UpdateFAQRequest) ToUpdateFAQCommand(id string) commands.UpdateFAQCommand {
 	return commands.UpdateFAQCommand{
@@ -67,38 +57,6 @@ func (r *GetFAQsQuery) ToGetFAQsQuery() queries.GetFAQsQuery {
 		SortBy:    r.SortBy,
 		SortOrder: r.SortOrder,
 		Filters:   filters,
-	}
-}
-
-// ToSearchFAQsQuery преобразует HTTP-модель в запрос поиска FAQ
-func (r *SearchFAQsQuery) ToSearchFAQsQuery() queries.SearchFAQsQuery {
-	return queries.SearchFAQsQuery{
-		Query:      r.Query,
-		Category:   r.Category,
-		Limit:      r.Limit,
-		Offset:     r.Offset,
-		SortBy:     r.SortBy,
-		SortOrder:  r.SortOrder,
-		ActiveOnly: r.ActiveOnly,
-	}
-}
-
-// ToGetFAQsByCategoryQuery преобразует HTTP-модель в запрос получения FAQ по категории
-func (r *GetFAQsByCategoryQuery) ToGetFAQsByCategoryQuery(category string) queries.GetFAQsByCategoryQuery {
-	return queries.GetFAQsByCategoryQuery{
-		Category:   category,
-		Limit:      r.Limit,
-		Offset:     r.Offset,
-		SortBy:     r.SortBy,
-		SortOrder:  r.SortOrder,
-		ActiveOnly: r.ActiveOnly,
-	}
-}
-
-// ToGetFAQCategoriesQuery преобразует HTTP-модель в запрос получения категорий FAQ
-func (r *GetFAQCategoriesQuery) ToGetFAQCategoriesQuery() queries.GetFAQCategoriesQuery {
-	return queries.GetFAQCategoriesQuery{
-		WithCounts: r.WithCounts,
 	}
 }
 

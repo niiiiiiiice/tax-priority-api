@@ -44,8 +44,8 @@ func SetupRouter() *gin.Engine {
 	handlerFactory := wire.InitializeHandlerFactory(db)
 
 	// Создание обработчиков через фабрику
-	faqHandler := handlerFactory.CreateFAQHandler()
 	wsHandler := handlerFactory.CreateWebSocketHandler()
+	faqHandler := handlerFactory.CreateFAQHandler()
 	testimonialHandler := handlerFactory.CreateTestimonialHandler()
 
 	// Запуск WebSocket хаба в горутине

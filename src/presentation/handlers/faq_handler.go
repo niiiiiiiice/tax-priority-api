@@ -27,39 +27,6 @@ func NewFAQHTTPHandler(commandHandlers *handlers.FAQCommandHandlers, queryHandle
 	}
 }
 
-// CreateFAQ создает новую FAQ
-// @Summary Создать FAQ
-// @Description Создает новую запись FAQ
-// @Tags FAQ
-// @Accept json
-// @Produce json
-// @Param faq body models.CreateFAQRequest true "Данные FAQ"
-// @Success 201 {object} models.CommandResult
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq [post]
-func (h *FAQHTTPHandler) CreateFAQ(c *gin.Context) {
-	var req models.CreateFAQRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	cmd := req.ToCreateFAQCommand()
-	result, err := h.commandHandlers.Create.HandleCreateFAQ(c.Request.Context(), cmd)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if !result.Success {
-		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
-		return
-	}
-
-	c.JSON(http.StatusCreated, result)
-}
-
 // GetFAQ получает FAQ по ID
 // @Summary Получить FAQ по ID
 // @Description Возвращает FAQ по указанному ID
@@ -212,160 +179,6 @@ func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
-}
-
-// GetFAQsByCategory получает FAQ по категории
-// @Summary Получить FAQ по категории
-// @Description Возвращает FAQ определенной категории
-// @Tags FAQ
-// @Produce json
-// @Param category path string true "Категория FAQ"
-// @Param _limit query int false "Лимит записей" default(10)
-// @Param _offset query int false "Смещение" default(0)
-// @Param _sort query string false "Поле сортировки" default(priority)
-// @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
-// @Param activeOnly query bool false "Только активные FAQ" default(false)
-// @Success 200 {array} models.FAQResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/category/{category} [get]
-func (h *FAQHTTPHandler) GetFAQsByCategory(c *gin.Context) {
-	category := c.Param("category")
-	if category == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Category is required"})
-		return
-	}
-
-	limit, _ := strconv.Atoi(c.DefaultQuery("_limit", "10"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("_offset", "0"))
-	sortBy := c.DefaultQuery("_sort", "priority")
-	sortOrder := c.DefaultQuery("_order", "desc")
-	activeOnly, _ := strconv.ParseBool(c.DefaultQuery("activeOnly", "false"))
-
-	req := models.GetFAQsByCategoryQuery{
-		Limit:      limit,
-		Offset:     offset,
-		SortBy:     sortBy,
-		SortOrder:  sortOrder,
-		ActiveOnly: activeOnly,
-	}
-
-	query := req.ToGetFAQsByCategoryQuery(category)
-	result, err := h.queryHandlers.GetByCategory.HandleGetFAQsByCategory(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if !result.Success {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error})
-		return
-	}
-
-	c.JSON(http.StatusOK, dtos.ToFAQResponses(result.FAQs))
-}
-
-// SearchFAQs поиск FAQ
-// @Summary Поиск FAQ
-// @Description Выполняет поиск FAQ по тексту
-// @Tags FAQ
-// @Produce json
-// @Param q query string true "Поисковый запрос"
-// @Param category query string false "Категория для поиска"
-// @Param _limit query int false "Лимит записей" default(10)
-// @Param _offset query int false "Смещение" default(0)
-// @Param _sort query string false "Поле сортировки" default(priority)
-// @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
-// @Param activeOnly query bool false "Только активные FAQ" default(false)
-// @Success 200 {array} models.FAQResponse
-// @Failure 400 {object} models.ErrorResponse
-// @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/search [get]
-func (h *FAQHTTPHandler) SearchFAQs(c *gin.Context) {
-	searchQuery := c.Query("q")
-	if searchQuery == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Search query is required"})
-		return
-	}
-
-	category := c.Query("category")
-	limit, _ := strconv.Atoi(c.DefaultQuery("_limit", "10"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("_offset", "0"))
-	sortBy := c.DefaultQuery("_sort", "priority")
-	sortOrder := c.DefaultQuery("_order", "desc")
-	activeOnly, _ := strconv.ParseBool(c.DefaultQuery("activeOnly", "false"))
-
-	req := models.SearchFAQsQuery{
-		Query:      searchQuery,
-		Category:   category,
-		Limit:      limit,
-		Offset:     offset,
-		SortBy:     sortBy,
-		SortOrder:  sortOrder,
-		ActiveOnly: activeOnly,
-	}
-
-	query := req.ToSearchFAQsQuery()
-	result, err := h.queryHandlers.Search.HandleSearchFAQs(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if !result.Success {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error})
-		return
-	}
-
-	c.JSON(http.StatusOK, dtos.ToFAQResponses(result.FAQs))
-}
-
-// GetFAQCategories получает категории FAQ
-// @Summary Получить категории FAQ
-// @Description Возвращает список категорий FAQ
-// @Tags FAQ
-// @Produce json
-// @Param withCounts query bool false "Включить количество FAQ в каждой категории" default(false)
-// @Success 200 {array} models.CategoryResponse
-// @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/categories [get]
-func (h *FAQHTTPHandler) GetFAQCategories(c *gin.Context) {
-	withCounts, _ := strconv.ParseBool(c.DefaultQuery("withCounts", "false"))
-
-	req := models.GetFAQCategoriesQuery{
-		WithCounts: withCounts,
-	}
-
-	query := req.ToGetFAQCategoriesQuery()
-	result, err := h.queryHandlers.GetCategories.HandleGetFAQCategories(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if !result.Success {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error})
-		return
-	}
-
-	if withCounts {
-		var categories []models.CategoryResponse
-		for name, count := range result.CategoryCounts {
-			categories = append(categories, models.CategoryResponse{
-				Name:  name,
-				Count: count,
-			})
-		}
-		c.JSON(http.StatusOK, categories)
-	} else {
-		var categories []models.CategoryResponse
-		for _, name := range result.Categories {
-			categories = append(categories, models.CategoryResponse{
-				Name: name,
-			})
-		}
-		c.JSON(http.StatusOK, categories)
-	}
 }
 
 // GetFAQCount получает количество FAQ
@@ -576,16 +389,12 @@ func RegisterFAQRoutes(r *gin.Engine, handler *FAQHTTPHandler) {
 	faq := api.Group("/faq")
 	{
 		// CRUD операции
-		faq.POST("", handler.CreateFAQ)
 		faq.GET("/:id", handler.GetFAQ)
 		faq.PUT("/:id", handler.UpdateFAQ)
 		faq.DELETE("/:id", handler.DeleteFAQ)
 
 		// Получение списков
 		faq.GET("", handler.GetFAQs)
-		faq.GET("/category/:category", handler.GetFAQsByCategory)
-		faq.GET("/search", handler.SearchFAQs)
-		faq.GET("/categories", handler.GetFAQCategories)
 		faq.GET("/count", handler.GetFAQCount)
 
 		// Batch операции

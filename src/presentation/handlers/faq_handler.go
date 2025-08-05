@@ -69,21 +69,43 @@ func (h *FAQHTTPHandler) GetFAQ(c *gin.Context) {
 // @Param _sort query string false "Поле сортировки" default(createdAt)
 // @Param _order query string false "Порядок сортировки" Enums(asc,desc) default(desc)
 // @Param category query string false "Фильтр по категории"
-// @Param isActive query bool false "Фильтр по активности"
+// @Param isActive query bool false "Фильтр по активности" default(true)
 // @Success 200 {object} models.PaginatedFAQResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq [get]
+// @Router /api/faqs [get]
 func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 	// Парсим параметры запроса
-	limit, _ := strconv.Atoi(c.DefaultQuery("_limit", "10"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("_offset", "0"))
+	limit, err := strconv.Atoi(c.DefaultQuery("_limit", "10"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit parameter"})
+		return
+	}
+
+	if limit < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Limit cannot be negative"})
+		return
+	}
+
+	offset, err := strconv.Atoi(c.DefaultQuery("_offset", "0"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid offset parameter"})
+		return
+	}
+	if offset < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Offset cannot be negative"})
+		return
+	}
+
 	sortBy := c.DefaultQuery("_sort", "createdAt")
 	sortOrder := c.DefaultQuery("_order", "desc")
 	category := c.Query("category")
-	isActive, _ := strconv.ParseBool(c.Query("isActive"))
+	isActive, err := strconv.ParseBool(c.DefaultQuery("isActive", "true"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid isActive parameter, must be true or false"})
+		return
+	}
 
-	// Создаем HTTP-модель запроса
 	req := models.GetFAQsQuery{
 		Limit:     limit,
 		Offset:    offset,
@@ -106,6 +128,53 @@ func (h *FAQHTTPHandler) GetFAQs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dtos.ToPaginatedFAQResponse(result.Paginated))
+}
+
+// GetCategories получает список категорий FAQ
+// @Summary Получить список категорий FAQ
+// @Description Возвращает список уникальных категорий FAQ с опциональными счетчиками
+// @Tags FAQ
+// @Produce json
+// @Param withCounts query bool false "Включить количество FAQ в каждой категории" default(false)
+// @Success 200 {object} object{categories=[]string,categoryCounts=map[string]int64,success=bool,message=string,timestamp=string}
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/faqs/categories [get]
+func (h *FAQHTTPHandler) GetCategories(c *gin.Context) {
+	withCounts, err := strconv.ParseBool(c.DefaultQuery("withCounts", "false"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid withCounts parameter, must be true or false"})
+		return
+	}
+
+	req := models.GetFAQCategoriesQuery{
+		WithCounts: withCounts,
+	}
+
+	query := req.ToGetFAQCategoriesQuery()
+	result, err := h.queryHandlers.GetCategories.HandleGetFAQCategories(c.Request.Context(), query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !result.Success {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error})
+		return
+	}
+
+	response := gin.H{
+		"categories": result.Categories,
+		"success":    result.Success,
+		"message":    result.Message,
+		"timestamp":  result.Timestamp,
+	}
+
+	if withCounts && result.CategoryCounts != nil {
+		response["categoryCounts"] = result.CategoryCounts
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // UpdateFAQ обновляет FAQ
@@ -386,6 +455,11 @@ func (h *FAQHTTPHandler) UpdateFAQPriority(c *gin.Context) {
 // RegisterFAQRoutes регистрирует маршруты для FAQ
 func RegisterFAQRoutes(r *gin.Engine, handler *FAQHTTPHandler) {
 	api := r.Group("/api")
+	faqs := api.Group("/faqs")
+	{
+		faqs.GET("", handler.GetFAQs)
+		faqs.GET("/categories", handler.GetCategories)
+	}
 	faq := api.Group("/faq")
 	{
 		// CRUD операции
@@ -394,7 +468,6 @@ func RegisterFAQRoutes(r *gin.Engine, handler *FAQHTTPHandler) {
 		faq.DELETE("/:id", handler.DeleteFAQ)
 
 		// Получение списков
-		faq.GET("", handler.GetFAQs)
 		faq.GET("/count", handler.GetFAQCount)
 
 		// Batch операции

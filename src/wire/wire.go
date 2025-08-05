@@ -88,6 +88,7 @@ var FAQProviderSet = wire.NewSet(
 
 	// Repository
 	CreateFAQGenericRepository,
+	CreateFAQRepository,
 	infraRepos.NewCachedFAQRepository,
 
 	// Application handlers aggregators

@@ -54,3 +54,8 @@ func CreateFAQCacheManager(
 ) infraCache.CacheManager[*entities.FAQ, string] {
 	return infraCache.NewCacheManager(cache, keyGen, cacheConfig, invalidationConfig)
 }
+
+// CreateFAQRepository создает FAQ репозиторий
+func CreateFAQRepository(genericRepo appRepos.GenericRepository[*entities.FAQ, string]) appRepos.FAQRepository {
+	return infraRepos.NewFAQRepository(genericRepo)
+}

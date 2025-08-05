@@ -28,6 +28,7 @@ import (
 // InitializeFAQHTTPHandler инициализирует HTTP обработчик FAQ
 func InitializeFAQHTTPHandler(db *gorm.DB) *handlers.FAQHTTPHandler {
 	genericRepository := CreateFAQGenericRepository(db)
+	faqRepository := CreateFAQRepository(genericRepository)
 	redisConfig := persistence.NewRedisConfig()
 	client := CreateRedisClient(redisConfig)
 	cacheConfig := cache.NewCacheConfig()
@@ -35,7 +36,7 @@ func InitializeFAQHTTPHandler(db *gorm.DB) *handlers.FAQHTTPHandler {
 	keyGenerator := CreateFAQKeyGenerator()
 	invalidationConfig := CreateFAQInvalidationConfig()
 	cacheManager := CreateFAQCacheManager(cacheCache, keyGenerator, cacheConfig, invalidationConfig)
-	cachedFAQRepository := repositories.NewCachedFAQRepository(genericRepository, cacheManager, keyGenerator, cacheConfig)
+	cachedFAQRepository := repositories.NewCachedFAQRepository(genericRepository, faqRepository, cacheManager, keyGenerator, cacheConfig)
 	hub := websocket.NewHub()
 	notificationService := events.NewNotificationService(hub)
 	faqCommandHandlers := handlers2.NewFAQCommandHandlers(cachedFAQRepository, notificationService)
@@ -122,7 +123,8 @@ var FAQProviderSet = wire.NewSet(
 	CreateFAQInvalidationConfig,
 	CreateFAQCacheManager,
 
-	CreateFAQGenericRepository, repositories.NewCachedFAQRepository, handlers2.NewFAQCommandHandlers, handlers2.NewFAQQueryHandlers, handlers.NewFAQHTTPHandler,
+	CreateFAQGenericRepository,
+	CreateFAQRepository, repositories.NewCachedFAQRepository, handlers2.NewFAQCommandHandlers, handlers2.NewFAQQueryHandlers, handlers.NewFAQHTTPHandler,
 )
 
 // TestimonialProviderSet набор провайдеров для Testimonials

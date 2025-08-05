@@ -90,3 +90,35 @@ func (r *FAQRepositoryImpl) Refresh(ctx context.Context, entity *entities.FAQ) e
 func (r *FAQRepositoryImpl) Clear(ctx context.Context) error {
 	return r.generic.Clear(ctx)
 }
+
+func (r *FAQRepositoryImpl) GetCategories(ctx context.Context, withCounts bool) ([]string, map[string]int64, error) {
+	opts := &sharedModels.QueryOptions{
+		Filters: map[string]interface{}{
+			"isActive": true,
+		},
+	}
+
+	faqs, err := r.generic.FindAll(ctx, opts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	categoryMap := make(map[string]int64)
+
+	for _, faq := range faqs {
+		if faq.Category != "" {
+			categoryMap[faq.Category]++
+		}
+	}
+
+	categories := make([]string, 0, len(categoryMap))
+	for category := range categoryMap {
+		categories = append(categories, category)
+	}
+
+	if !withCounts {
+		return categories, nil, nil
+	}
+
+	return categories, categoryMap, nil
+}

@@ -45,6 +45,13 @@ type CategoryResponse struct {
 	Count int64  `json:"count,omitempty"`
 }
 
+type CategoriesResult struct {
+	Categories     []string         `json:"categories"`
+	CategoryCounts map[string]int64 `json:"categoryCounts,omitempty"`
+	WithCounts     bool             `json:"withCounts"`
+	CachedAt       time.Time        `json:"cachedAt"`
+}
+
 func ToFAQResponse(faq *entities.FAQ) FAQResponse {
 	return FAQResponse{
 		ID:        faq.ID,

@@ -6,17 +6,19 @@ import (
 )
 
 type FAQQueryHandlers struct {
-	GetByID  *queries.GetFAQByIDQueryHandler
-	GetByIDs *queries.GetFAQsByIDsQueryHandler
-	GetCount *queries.GetFAQCountQueryHandler
-	GetMany  *queries.GetFAQsQueryHandler
+	GetByID       *queries.GetFAQByIDQueryHandler
+	GetByIDs      *queries.GetFAQsByIDsQueryHandler
+	GetCount      *queries.GetFAQCountQueryHandler
+	GetMany       *queries.GetFAQsQueryHandler
+	GetCategories *queries.GetFAQCategoriesQueryHandler
 }
 
 func NewFAQQueryHandlers(repo repositories.CachedFAQRepository) *FAQQueryHandlers {
 	return &FAQQueryHandlers{
-		GetByID:  queries.NewGetFAQByIDQueryHandler(repo),
-		GetByIDs: queries.NewGetFAQsByIDsQueryHandler(repo),
-		GetCount: queries.NewGetFAQCountQueryHandler(repo),
-		GetMany:  queries.NewGetFAQsQueryHandler(repo),
+		GetByID:       queries.NewGetFAQByIDQueryHandler(repo),
+		GetByIDs:      queries.NewGetFAQsByIDsQueryHandler(repo),
+		GetCount:      queries.NewGetFAQCountQueryHandler(repo),
+		GetMany:       queries.NewGetFAQsQueryHandler(repo),
+		GetCategories: queries.NewGetFAQCategoriesQueryHandler(repo),
 	}
 }

@@ -60,6 +60,13 @@ func (r *GetFAQsQuery) ToGetFAQsQuery() queries.GetFAQsQuery {
 	}
 }
 
+// ToGetFAQCategoriesQuery преобразует HTTP-модель в запрос получения категорий FAQ
+func (r *GetFAQCategoriesQuery) ToGetFAQCategoriesQuery() queries.GetFAQCategoriesQuery {
+	return queries.GetFAQCategoriesQuery{
+		WithCounts: r.WithCounts,
+	}
+}
+
 // ToGetFAQCountQuery преобразует HTTP-модель в запрос получения количества FAQ
 func (r *GetFAQCountQuery) ToGetFAQCountQuery() queries.GetFAQCountQuery {
 	filters := make(map[string]interface{})

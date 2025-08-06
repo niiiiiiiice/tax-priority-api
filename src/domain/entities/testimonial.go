@@ -25,30 +25,38 @@ type Testimonial struct {
 }
 
 // Реализация интерфейса Entity
+
+// GetID - возвращает ID
 func (t *Testimonial) GetID() string {
 	return t.ID
 }
 
+// SetID - устанавливает ID
 func (t *Testimonial) SetID(id string) {
 	t.ID = id
 }
 
+// GetCreatedAt - возвращает время создания
 func (t *Testimonial) GetCreatedAt() time.Time {
 	return t.CreatedAt
 }
 
+// SetCreatedAt - устанавливает время создания
 func (t *Testimonial) SetCreatedAt(time time.Time) {
 	t.CreatedAt = time
 }
 
+// GetUpdatedAt - возвращает время обновления
 func (t *Testimonial) GetUpdatedAt() time.Time {
 	return t.UpdatedAt
 }
 
+// SetUpdatedAt - устанавливает время обновления
 func (t *Testimonial) SetUpdatedAt(time time.Time) {
 	t.UpdatedAt = time
 }
 
+// NewTestimonial - создает новую Testimonial сущность
 func NewTestimonial(content, author, authorEmail string, rating int) *Testimonial {
 	now := time.Now()
 	return &Testimonial{
@@ -63,6 +71,7 @@ func NewTestimonial(content, author, authorEmail string, rating int) *Testimonia
 	}
 }
 
+// Approve - одобряет Testimonial
 func (t *Testimonial) Approve(approvedBy string) {
 	now := time.Now()
 	t.IsApproved = true
@@ -71,16 +80,19 @@ func (t *Testimonial) Approve(approvedBy string) {
 	t.UpdatedAt = now
 }
 
+// Deactivate - деактивирует Testimonial
 func (t *Testimonial) Deactivate() {
 	t.IsActive = false
 	t.UpdatedAt = time.Now()
 }
 
+// Activate - активирует Testimonial
 func (t *Testimonial) Activate() {
 	t.IsActive = true
 	t.UpdatedAt = time.Now()
 }
 
+// SetFile - устанавливает файл
 func (t *Testimonial) SetFile(filePath, fileName, fileType string, fileSize int64) {
 	t.FilePath = filePath
 	t.FileName = fileName
@@ -89,11 +101,13 @@ func (t *Testimonial) SetFile(filePath, fileName, fileType string, fileSize int6
 	t.UpdatedAt = time.Now()
 }
 
+// UpdateContent - обновляет контент
 func (t *Testimonial) UpdateContent(content string) {
 	t.Content = content
 	t.UpdatedAt = time.Now()
 }
 
+// UpdateRating - обновляет рейтинг
 func (t *Testimonial) UpdateRating(rating int) {
 	t.Rating = rating
 	t.UpdatedAt = time.Now()

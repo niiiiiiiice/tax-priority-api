@@ -22,7 +22,7 @@ type FAQModel struct {
 }
 
 // TableName возвращает имя таблицы для GORM
-func (FAQModel) TableName() string {
+func (*FAQModel) TableName() string {
 	return "faqs"
 }
 

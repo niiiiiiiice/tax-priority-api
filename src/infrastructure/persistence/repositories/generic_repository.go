@@ -257,7 +257,7 @@ func (r *GenericRepositoryImpl[T, M, ID]) FindOne(ctx context.Context, opts *sha
 
 	result := query.First(&model)
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return zero, persistence.NewNotFoundError("entity not found", result.Error)
 		}
 		return zero, persistence.NewInternalError("failed to find entity", result.Error)

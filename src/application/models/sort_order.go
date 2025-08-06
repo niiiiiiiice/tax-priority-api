@@ -6,6 +6,8 @@ type SortOrder string
 
 const (
 	//ASC  SortOrder = "ASC"
+
+	// DESC - сортировка по убыванию
 	DESC SortOrder = "DESC"
 )
 

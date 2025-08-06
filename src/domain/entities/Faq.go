@@ -19,33 +19,40 @@ type FAQ struct {
 }
 
 // Реализация интерфейса Entity
+
+// GetID - возвращает ID
 func (f *FAQ) GetID() string {
 	return f.ID
 }
 
+// SetID - устанавливает ID
 func (f *FAQ) SetID(id string) {
 	f.ID = id
 }
 
+// GetCreatedAt - возвращает время создания
 func (f *FAQ) GetCreatedAt() time.Time {
 	return f.CreatedAt
 }
 
+// SetCreatedAt - устанавливает время создания
 func (f *FAQ) SetCreatedAt(t time.Time) {
 	f.CreatedAt = t
 }
 
+// GetUpdatedAt - возвращает время обновления
 func (f *FAQ) GetUpdatedAt() time.Time {
 	return f.UpdatedAt
 }
 
+// SetUpdatedAt - устанавливает время обновления
 func (f *FAQ) SetUpdatedAt(t time.Time) {
 	f.UpdatedAt = t
 }
 
 // Бизнес-логика
 
-// NewFAQ создает новую FAQ сущность
+// NewFAQ - создает новую FAQ сущность
 func NewFAQ(question, answer, category string) (*FAQ, error) {
 	faq := &FAQ{
 		Question:  strings.TrimSpace(question),
@@ -64,7 +71,7 @@ func NewFAQ(question, answer, category string) (*FAQ, error) {
 	return faq, nil
 }
 
-// Validate проверяет валидность FAQ
+// Validate - проверяет валидность FAQ
 func (f *FAQ) Validate() error {
 	if f.Question == "" {
 		return errors.New("question cannot be empty")
@@ -105,21 +112,21 @@ func (f *FAQ) Validate() error {
 	return nil
 }
 
-// UpdateQuestion обновляет вопрос
+// UpdateQuestion - обновляет вопрос
 func (f *FAQ) UpdateQuestion(question string) error {
 	f.Question = strings.TrimSpace(question)
 	f.UpdatedAt = time.Now()
 	return f.Validate()
 }
 
-// UpdateAnswer обновляет ответ
+// UpdateAnswer - обновляет ответ
 func (f *FAQ) UpdateAnswer(answer string) error {
 	f.Answer = strings.TrimSpace(answer)
 	f.UpdatedAt = time.Now()
 	return f.Validate()
 }
 
-// UpdateCategory обновляет категорию
+// UpdateCategory - обновляет категорию
 func (f *FAQ) UpdateCategory(category string) error {
 	f.Category = strings.TrimSpace(category)
 	f.UpdatedAt = time.Now()
@@ -136,24 +143,24 @@ func (f *FAQ) SetPriority(priority int) error {
 	return nil
 }
 
-// Activate активирует FAQ
+// Activate - активирует FAQ
 func (f *FAQ) Activate() {
 	f.IsActive = true
 	f.UpdatedAt = time.Now()
 }
 
-// Deactivate деактивирует FAQ
+// Deactivate - деактивирует FAQ
 func (f *FAQ) Deactivate() {
 	f.IsActive = false
 	f.UpdatedAt = time.Now()
 }
 
-// IsValidForPublishing проверяет готовность к публикации
+// IsValidForPublishing - проверяет готовность к публикации
 func (f *FAQ) IsValidForPublishing() bool {
 	return f.IsActive && f.Question != "" && f.Answer != "" && f.Category != ""
 }
 
-// GetSearchableText возвращает текст для поиска
+// GetSearchableText - возвращает текст для поиска
 func (f *FAQ) GetSearchableText() string {
 	return strings.ToLower(f.Question + " " + f.Answer + " " + f.Category)
 }

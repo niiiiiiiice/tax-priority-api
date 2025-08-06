@@ -17,7 +17,6 @@ func NewTestimonialRepository(generic repositories.GenericRepository[*entities.T
 	return &TestimonialRepositoryImpl{generic}
 }
 
-// Delegate all GenericRepository methods
 func (r *TestimonialRepositoryImpl) Create(ctx context.Context, entity *entities.Testimonial) error {
 	return r.generic.Create(ctx, entity)
 }
@@ -83,7 +82,6 @@ func (r *TestimonialRepositoryImpl) Clear(ctx context.Context) error {
 	return r.generic.Clear(ctx)
 }
 
-// Специфические методы для отзывов
 func (r *TestimonialRepositoryImpl) FindByApprovalStatus(ctx context.Context, isApproved bool, opts *models.QueryOptions) (*models.PaginatedResult[*entities.Testimonial], error) {
 	if opts == nil {
 		opts = &models.QueryOptions{}
@@ -213,7 +211,6 @@ func (r *TestimonialRepositoryImpl) CountByApprovalStatus(ctx context.Context, i
 	})
 }
 
-// Методы для массовых операций
 func (r *TestimonialRepositoryImpl) ApproveMany(ctx context.Context, ids []string, approvedBy string) (*models.BulkOperationResult, error) {
 	if len(ids) == 0 {
 		return &models.BulkOperationResult{SuccessCount: 0, FailureCount: 0}, nil

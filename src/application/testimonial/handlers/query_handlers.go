@@ -20,10 +20,13 @@ func NewTestimonialQueryHandlers(repo repositories.CachedTestimonialRepository) 
 }
 
 // Методы для выполнения запросов
+
+// GetTestimonials - получение отзывов
 func (h *TestimonialQueryHandlers) GetTestimonials(ctx context.Context, query dtos.GetTestimonialsQuery) (*dtos.QueryResult, error) {
 	return h.GetManyHandler.Handle(ctx, query)
 }
 
+// GetTestimonialByID - получение отзыва по ID
 func (h *TestimonialQueryHandlers) GetTestimonialByID(ctx context.Context, query dtos.GetTestimonialByIDQuery) (*dtos.QueryResult, error) {
 	return h.GetByIDHandler.Handle(ctx, query)
 }

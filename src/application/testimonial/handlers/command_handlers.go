@@ -24,18 +24,23 @@ func NewTestimonialCommandHandlers(repo repositories.CachedTestimonialRepository
 }
 
 // Методы для выполнения команд
+
+// CreateTestimonial - создание отзыва
 func (h *TestimonialCommandHandlers) CreateTestimonial(ctx context.Context, cmd dtos.CreateTestimonialCommand) (*dtos.CommandResult, error) {
 	return h.CreateHandler.Handle(ctx, cmd)
 }
 
+// UpdateTestimonial - обновление отзыва
 func (h *TestimonialCommandHandlers) UpdateTestimonial(ctx context.Context, cmd dtos.UpdateTestimonialCommand) (*dtos.CommandResult, error) {
 	return h.UpdateHandler.Handle(ctx, cmd)
 }
 
+// DeleteTestimonial - удаление отзыва
 func (h *TestimonialCommandHandlers) DeleteTestimonial(ctx context.Context, cmd dtos.DeleteTestimonialCommand) (*dtos.CommandResult, error) {
 	return h.DeleteHandler.Handle(ctx, cmd)
 }
 
+// ApproveTestimonial - одобрение отзыва
 func (h *TestimonialCommandHandlers) ApproveTestimonial(ctx context.Context, cmd dtos.ApproveTestimonialCommand) (*dtos.CommandResult, error) {
 	return h.ApproveHandler.Handle(ctx, cmd)
 }

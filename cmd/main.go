@@ -21,13 +21,15 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 
-// @host localhost:8080
+// @host localhost:5000
 // @BasePath /
 // @schemes http https
 
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
+// @securityDefinitions.oauth2.authorizationCode OAuth2AuthorizationCode
+// @authorizationUrl http://localhost:8080/realms/master/protocol/openid-connect/auth
+// @tokenUrl http://localhost:8080/realms/master/protocol/openid-connect/token
+// @scope.api:read Read access to API
+// @scope.api:write Write access to API
 
 func main() {
 	persistence.Connect(persistence.NewDatabaseConfig())
@@ -36,7 +38,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "5000"
 	}
 
 	log.Printf("Server starting on port %s", port)

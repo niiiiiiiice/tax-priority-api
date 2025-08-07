@@ -19,7 +19,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "localhost:5000",
     "basePath": "/",
     "paths": {
         "/api/faq/batch": {
@@ -1569,13 +1569,6 @@
                     "example": "Как подать налоговую декларацию?"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "ApiKeyAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         }
     }
 }

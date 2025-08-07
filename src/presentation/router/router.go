@@ -9,6 +9,7 @@ import (
 	"tax-priority-api/src/infrastructure/persistence"
 	"tax-priority-api/src/infrastructure/persistence/models"
 	"tax-priority-api/src/presentation/handlers"
+	"tax-priority-api/src/presentation/middlewares"
 	"tax-priority-api/src/wire"
 
 	"github.com/gin-contrib/cors"
@@ -28,6 +29,9 @@ func SetupRouter() *gin.Engine {
 		ExposeHeaders:    []string{"*"},
 		AllowCredentials: true,
 	}))
+
+	middlewares.StartJWKSRefresh()
+	router.Use(middlewares.AuthMiddleware())
 
 	// Подключение к базе данных
 	db, err := persistence.Connect(persistence.NewDatabaseConfig())
@@ -87,7 +91,9 @@ func SetupRouter() *gin.Engine {
 		c.File(filePath)
 	})
 
-	// Swagger documentation
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(302, "/swagger/index.html")
+	})
 	router.GET("/swagger", func(c *gin.Context) {
 		c.Redirect(302, "/swagger/index.html")
 	})

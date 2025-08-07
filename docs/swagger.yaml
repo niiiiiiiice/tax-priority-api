@@ -350,7 +350,7 @@ definitions:
     - category
     - question
     type: object
-host: localhost:8080
+host: localhost:5000
 info:
   contact:
     email: support@swagger.io
@@ -1063,9 +1063,4 @@ paths:
 schemes:
 - http
 - https
-securityDefinitions:
-  ApiKeyAuth:
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

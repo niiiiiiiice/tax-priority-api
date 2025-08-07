@@ -25,12 +25,14 @@ import (
 // @BasePath /
 // @schemes http https
 
-// @securityDefinitions.oauth2.authorizationCode OAuth2AuthorizationCode
+// @securityDefinitions.oauth2.accessCode OAuth2AccessCode
 // @authorizationUrl http://localhost:8080/realms/master/protocol/openid-connect/auth
 // @tokenUrl http://localhost:8080/realms/master/protocol/openid-connect/token
+// @scope.openid OpenID Connect
+// @scope.profile User profile information
+// @scope.email User email information
 // @scope.api:read Read access to API
 // @scope.api:write Write access to API
-
 func main() {
 	persistence.Connect(persistence.NewDatabaseConfig())
 

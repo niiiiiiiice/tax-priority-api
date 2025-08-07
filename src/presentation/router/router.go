@@ -91,13 +91,24 @@ func SetupRouter() *gin.Engine {
 		c.File(filePath)
 	})
 
+	swaggerConfig := &ginSwagger.Config{
+		URL:                      "doc.json",
+		DocExpansion:             "list",
+		Title:                    "Tax Priority API",
+		DefaultModelsExpandDepth: 1,
+		DeepLinking:              true,
+		PersistAuthorization:     true,
+		Oauth2DefaultClientID:    "swagger-ui",
+		Oauth2UsePkce:            true,
+	}
+
 	router.GET("/", func(c *gin.Context) {
 		c.Redirect(302, "/swagger/index.html")
 	})
 	router.GET("/swagger", func(c *gin.Context) {
 		c.Redirect(302, "/swagger/index.html")
 	})
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.GET("/swagger/*any", ginSwagger.CustomWrapHandler(swaggerConfig, swaggerFiles.Handler))
 
 	router.Use(gin.Recovery())
 	router.Use(gin.Logger())

@@ -695,6 +695,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
       summary: Получить список FAQ
       tags:
       - FAQ
@@ -1063,4 +1065,16 @@ paths:
 schemes:
 - http
 - https
+securityDefinitions:
+  OAuth2AccessCode:
+    authorizationUrl: http://localhost:8080/realms/master/protocol/openid-connect/auth
+    flow: accessCode
+    scopes:
+      api:read: Read access to API
+      api:write: Write access to API
+      email: User email information
+      openid: OpenID Connect
+      profile: User profile information
+    tokenUrl: http://localhost:8080/realms/master/protocol/openid-connect/token
+    type: oauth2
 swagger: "2.0"

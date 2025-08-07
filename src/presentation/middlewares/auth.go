@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 const (
@@ -78,11 +79,11 @@ func AuthMiddleware() gin.HandlerFunc {
 				return nil, fmt.Errorf("key not found")
 			}
 
-			var rawKey interface{}
-			if err := key.Raw(&rawKey); err != nil {
-				return nil, fmt.Errorf("failed to get raw key: %w", err)
+			var rawKey rsa.PublicKey
+			if err := jwk.Export(key, &rawKey); err != nil {
+				return nil, fmt.Errorf("failed to export public key: %w", err)
 			}
-			return rawKey, nil
+			return &rawKey, nil
 		})
 
 		if err != nil || !token.Valid {

@@ -451,6 +451,11 @@ const docTemplate = `{
         },
         "/api/faqs": {
             "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
                 "description": "Возвращает список FAQ с пагинацией и фильтрацией",
                 "produces": [
                     "application/json"
@@ -1574,10 +1579,18 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
+        "OAuth2AccessCode": {
+            "type": "oauth2",
+            "flow": "accessCode",
+            "authorizationUrl": "http://localhost:8080/realms/master/protocol/openid-connect/auth",
+            "tokenUrl": "http://localhost:8080/realms/master/protocol/openid-connect/token",
+            "scopes": {
+                "api:read": "Read access to API",
+                "api:write": "Write access to API",
+                "email": "User email information",
+                "openid": "OpenID Connect",
+                "profile": "User profile information"
+            }
         }
     }
 }`

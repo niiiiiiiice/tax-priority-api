@@ -64,6 +64,7 @@ func (h *FAQHTTPHandler) GetFAQ(c *gin.Context) {
 // @Description Возвращает список FAQ с пагинацией и фильтрацией
 // @Tags FAQ
 // @Produce json
+// @Security OAuth2AccessCode
 // @Param _limit query int false "Лимит записей" default(10)
 // @Param _offset query int false "Смещение" default(0)
 // @Param _sort query string false "Поле сортировки" default(createdAt)

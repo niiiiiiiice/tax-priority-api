@@ -18,7 +18,7 @@ run-local:
 	@echo "Starting API server locally..."
 	@echo "Make sure PostgreSQL is running on localhost:5432"
 	@echo "Database: tax_priority, User: postgres, Password: postgres"
-	DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=tax_priority DB_SSLMODE=disable PORT=5000 go run cmd/main.go
+	DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=tax_priority DB_SSLMODE=disable PORT=38080 go run cmd/main.go
 
 # Установка зависимостей
 deps:
@@ -78,7 +78,7 @@ dev-win:
 	@echo "Starting development server on Windows..."
 	@echo "Make sure PostgreSQL is running on localhost:5432"
 	@echo "Database: tax_priority, User: postgres, Password: postgres"
-	@set DB_HOST=localhost& set DB_PORT=5432& set DB_USER=postgres& set DB_PASSWORD=postgres& set DB_NAME=tax_priority& set DB_SSLMODE=disable& set PORT=5000& air
+	@set DB_HOST=localhost& set DB_PORT=5432& set DB_USER=postgres& set DB_PASSWORD=postgres& set DB_NAME=tax_priority& set DB_SSLMODE=disable& set PORT=38080& air
 
 # Установка инструментов для разработки
 install-tools:

@@ -38,7 +38,7 @@ RUN chown appuser:appgroup main
 USER appuser
 
 # Открываем порт
-EXPOSE 5000
+EXPOSE 38080
 
 # Запускаем приложение
 CMD ["./main"] 

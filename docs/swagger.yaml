@@ -350,7 +350,7 @@ definitions:
     - category
     - question
     type: object
-host: localhost:5000
+host: localhost:38080
 info:
   contact:
     email: support@swagger.io

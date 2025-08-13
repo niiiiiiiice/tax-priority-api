@@ -21,7 +21,7 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 
-// @host localhost:5000
+// @host localhost:38080
 // @BasePath /
 // @schemes http https
 
@@ -40,7 +40,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "5000"
+		port = "38080"
 	}
 
 	log.Printf("Server starting on port %s", port)

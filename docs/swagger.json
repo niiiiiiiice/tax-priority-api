@@ -19,7 +19,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:5000",
+    "host": "localhost:38080",
     "basePath": "/",
     "paths": {
         "/api/faq/batch": {

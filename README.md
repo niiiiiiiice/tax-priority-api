@@ -63,7 +63,7 @@ DB_NAME=tax_priority
 DB_SSLMODE=disable
 
 # Server Configuration
-PORT=5000
+PORT=38080
 GIN_MODE=release
 ```
 
@@ -79,15 +79,15 @@ CREATE DATABASE tax_priority;
 go run cmd/main.go
 ```
 
-API будет доступно по адресу: `http://localhost:5000`
+API будет доступно по адресу: `http://localhost:38080`
 
 ## Swagger Documentation
 
 После запуска API, документация будет доступна по следующим адресам:
 
-- **Swagger UI**: `http://localhost:5000/swagger` (автоматический редирект на `/swagger/index.html`)
-- **JSON Schema**: `http://localhost:5000/swagger/doc.json`
-- **YAML Schema**: `http://localhost:5000/swagger/swagger.yaml`
+- **Swagger UI**: `http://localhost:38080/swagger` (автоматический редирект на `/swagger/index.html`)
+- **JSON Schema**: `http://localhost:38080/swagger/doc.json`
+- **YAML Schema**: `http://localhost:38080/swagger/swagger.yaml`
 
 ### Генерация документации
 
@@ -176,7 +176,7 @@ make install-tools
 ### Создание пользователя
 
 ```bash
-curl -X POST http://localhost:5000/api/users \
+curl -X POST http://localhost:38080/api/users \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -189,7 +189,7 @@ curl -X POST http://localhost:5000/api/users \
 ### Создание продукта
 
 ```bash
-curl -X POST http://localhost:5000/api/products \
+curl -X POST http://localhost:38080/api/products \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Sample Product",
@@ -205,13 +205,13 @@ curl -X POST http://localhost:5000/api/products \
 ### Получение пользователей с фильтрацией
 
 ```bash
-curl "http://localhost:5000/api/users?role=admin&_limit=5&_sort=name&_order=asc"
+curl "http://localhost:38080/api/users?role=admin&_limit=5&_sort=name&_order=asc"
 ```
 
 ### Поиск продуктов
 
 ```bash
-curl "http://localhost:5000/api/products/search?q=laptop"
+curl "http://localhost:38080/api/products/search?q=laptop"
 ```
 
 ## Модели данных

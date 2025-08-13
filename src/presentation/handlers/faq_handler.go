@@ -36,7 +36,7 @@ func NewFAQHTTPHandler(commandHandlers *handlers.FAQCommandHandlers, queryHandle
 // @Success 200 {object} models.FAQResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/{id} [get]
+// @Router /api/faqs/{id} [get]
 func (h *FAQHTTPHandler) GetFAQ(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -194,7 +194,7 @@ func (h *FAQHTTPHandler) GetCategories(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/{id} [put]
+// @Router /api/faqs/{id} [put]
 func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -232,7 +232,7 @@ func (h *FAQHTTPHandler) UpdateFAQ(c *gin.Context) {
 // @Success 200 {object} models.CommandResult
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/{id} [delete]
+// @Router /api/faqs/{id} [delete]
 func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -264,7 +264,7 @@ func (h *FAQHTTPHandler) DeleteFAQ(c *gin.Context) {
 // @Param isActive query bool false "Фильтр по активности"
 // @Success 200 {object} models.CountResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/count [get]
+// @Router /api/faqs/count [get]
 func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
 	category := c.Query("category")
 	isActive, _ := strconv.ParseBool(c.Query("isActive"))
@@ -299,7 +299,7 @@ func (h *FAQHTTPHandler) GetFAQCount(c *gin.Context) {
 // @Success 200 {array} models.FAQResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/batch [post]
+// @Router /api/faqs/batch [post]
 func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
 	var req models.GetFAQsByIDsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -332,7 +332,7 @@ func (h *FAQHTTPHandler) GetFAQsByIDs(c *gin.Context) {
 // @Success 200 {object} models.BatchCommandResult
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/bulk-delete [delete]
+// @Router /api/faqs/bulk-delete [delete]
 func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
 	var req models.BulkDeleteFAQRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -350,6 +350,39 @@ func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// CreateFAQ создает новый FAQ
+// @Summary Создать FAQ
+// @Description Создает новую запись FAQ
+// @Tags FAQ
+// @Accept json
+// @Produce json
+// @Param faq body models.CreateFAQRequest true "Данные для создания FAQ"
+// @Success 201 {object} models.CommandResult
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/faqs [post]
+func (h *FAQHTTPHandler) CreateFAQ(c *gin.Context) {
+	var req models.CreateFAQRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cmd := req.ToCreateFAQCommand()
+	result, err := h.commandHandlers.Create.HandleCreateFAQ(c.Request.Context(), cmd)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !result.Success {
+		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error})
+		return
+	}
+
+	c.JSON(http.StatusCreated, result)
+}
+
 // ActivateFAQ активирует FAQ
 // @Summary Активировать FAQ
 // @Description Активирует FAQ по ID
@@ -360,7 +393,7 @@ func (h *FAQHTTPHandler) BulkDeleteFAQs(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/{id}/activate [patch]
+// @Router /api/faqs/{id}/activate [patch]
 func (h *FAQHTTPHandler) ActivateFAQ(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -393,7 +426,7 @@ func (h *FAQHTTPHandler) ActivateFAQ(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/{id}/deactivate [patch]
+// @Router /api/faqs/{id}/deactivate [patch]
 func (h *FAQHTTPHandler) DeactivateFAQ(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -428,7 +461,7 @@ func (h *FAQHTTPHandler) DeactivateFAQ(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /api/faq/{id}/priority [patch]
+// @Router /api/faqs/{id}/priority [patch]
 func (h *FAQHTTPHandler) UpdateFAQPriority(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -462,26 +495,25 @@ func RegisterFAQRoutes(r *gin.Engine, handler *FAQHTTPHandler) {
 	api := r.Group("/api")
 	faqs := api.Group("/faqs")
 	{
-		faqs.GET("", handler.GetFAQs)
-		faqs.GET("/categories", handler.GetCategories)
-	}
-	faq := api.Group("/faq")
-	{
 		// CRUD операции
-		faq.GET("/:id", handler.GetFAQ)
-		faq.PUT("/:id", handler.UpdateFAQ)
-		faq.DELETE("/:id", handler.DeleteFAQ)
+		faqs.GET("/:id", handler.GetFAQ)
+		faqs.GET("", handler.GetFAQs)
+		faqs.POST("", handler.CreateFAQ)
+		faqs.PUT("/:id", handler.UpdateFAQ)
+		faqs.DELETE("/:id", handler.DeleteFAQ)
 
 		// Получение списков
-		faq.GET("/count", handler.GetFAQCount)
+		faqs.GET("/count", handler.GetFAQCount)
 
 		// Batch операции
-		faq.POST("/batch", handler.GetFAQsByIDs)
-		faq.DELETE("/bulk-delete", handler.BulkDeleteFAQs)
+		faqs.POST("/batch", handler.GetFAQsByIDs)
+		faqs.DELETE("/bulk-delete", handler.BulkDeleteFAQs)
 
 		// Управление состоянием
-		faq.PATCH("/:id/activate", handler.ActivateFAQ)
-		faq.PATCH("/:id/deactivate", handler.DeactivateFAQ)
-		faq.PATCH("/:id/priority", handler.UpdateFAQPriority)
+		faqs.PATCH("/:id/activate", handler.ActivateFAQ)
+		faqs.PATCH("/:id/deactivate", handler.DeactivateFAQ)
+		faqs.PATCH("/:id/priority", handler.UpdateFAQPriority)
+
+		faqs.GET("/categories", handler.GetCategories)
 	}
 }

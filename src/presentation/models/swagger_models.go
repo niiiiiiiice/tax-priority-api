@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"tax-priority-api/src/application/faq/commands"
+	"time"
+)
 
 // CreateFAQRequest модель для создания FAQ
 type CreateFAQRequest struct {
@@ -8,6 +11,16 @@ type CreateFAQRequest struct {
 	Answer   string `json:"answer" validate:"required,min=10,max=2000" example:"Для подачи налоговой декларации необходимо..."`
 	Category string `json:"category" validate:"required,max=100" example:"налоги"`
 	Priority int    `json:"priority" validate:"min=0,max=100" example:"50"`
+}
+
+// ToCreateFAQCommand преобразует запрос создания FAQ в команду
+func (r *CreateFAQRequest) ToCreateFAQCommand() commands.CreateFAQCommand {
+	return commands.CreateFAQCommand{
+		Question: r.Question,
+		Answer:   r.Answer,
+		Category: r.Category,
+		Priority: r.Priority,
+	}
 }
 
 // UpdateFAQRequest модель для обновления FAQ

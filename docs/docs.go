@@ -24,7 +24,135 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/faq/batch": {
+        "/api/faqs": {
+            "get": {
+                "security": [
+                    {
+                        "OAuth2AccessCode": []
+                    }
+                ],
+                "description": "Возвращает список FAQ с пагинацией и фильтрацией",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FAQ"
+                ],
+                "summary": "Получить список FAQ",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Лимит записей",
+                        "name": "_limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Смещение",
+                        "name": "_offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "createdAt",
+                        "description": "Поле сортировки",
+                        "name": "_sort",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "default": "desc",
+                        "description": "Порядок сортировки",
+                        "name": "_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Фильтр по категории",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Фильтр по активности",
+                        "name": "isActive",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.PaginatedFAQResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создает новую запись FAQ",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FAQ"
+                ],
+                "summary": "Создать FAQ",
+                "parameters": [
+                    {
+                        "description": "Данные для создания FAQ",
+                        "name": "faq",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.CreateFAQRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.CommandResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/faqs/batch": {
             "post": {
                 "description": "Возвращает FAQ по списку ID (batch запрос)",
                 "consumes": [
@@ -73,7 +201,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/faq/bulk-delete": {
+        "/api/faqs/bulk-delete": {
             "delete": {
                 "description": "Удаляет несколько FAQ по списку ID",
                 "consumes": [
@@ -119,7 +247,72 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/faq/count": {
+        "/api/faqs/categories": {
+            "get": {
+                "description": "Возвращает список уникальных категорий FAQ с опциональными счетчиками",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "FAQ"
+                ],
+                "summary": "Получить список категорий FAQ",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Включить количество FAQ в каждой категории",
+                        "name": "withCounts",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "categories": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "categoryCounts": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer",
+                                        "format": "int64"
+                                    }
+                                },
+                                "message": {
+                                    "type": "string"
+                                },
+                                "success": {
+                                    "type": "boolean"
+                                },
+                                "timestamp": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/faqs/count": {
             "get": {
                 "description": "Возвращает общее количество FAQ",
                 "produces": [
@@ -159,7 +352,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/faq/{id}": {
+        "/api/faqs/{id}": {
             "get": {
                 "description": "Возвращает FAQ по указанному ID",
                 "produces": [
@@ -296,7 +489,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/faq/{id}/activate": {
+        "/api/faqs/{id}/activate": {
             "patch": {
                 "description": "Активирует FAQ по ID",
                 "produces": [
@@ -343,7 +536,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/faq/{id}/deactivate": {
+        "/api/faqs/{id}/deactivate": {
             "patch": {
                 "description": "Деактивирует FAQ по ID",
                 "produces": [
@@ -390,7 +583,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/faq/{id}/priority": {
+        "/api/faqs/{id}/priority": {
             "patch": {
                 "description": "Обновляет приоритет FAQ по ID",
                 "consumes": [
@@ -436,155 +629,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/faqs": {
-            "get": {
-                "security": [
-                    {
-                        "OAuth2AccessCode": []
-                    }
-                ],
-                "description": "Возвращает список FAQ с пагинацией и фильтрацией",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "FAQ"
-                ],
-                "summary": "Получить список FAQ",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Лимит записей",
-                        "name": "_limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Смещение",
-                        "name": "_offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "default": "createdAt",
-                        "description": "Поле сортировки",
-                        "name": "_sort",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "asc",
-                            "desc"
-                        ],
-                        "type": "string",
-                        "default": "desc",
-                        "description": "Порядок сортировки",
-                        "name": "_order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Фильтр по категории",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "default": true,
-                        "description": "Фильтр по активности",
-                        "name": "isActive",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.PaginatedFAQResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/faqs/categories": {
-            "get": {
-                "description": "Возвращает список уникальных категорий FAQ с опциональными счетчиками",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "FAQ"
-                ],
-                "summary": "Получить список категорий FAQ",
-                "parameters": [
-                    {
-                        "type": "boolean",
-                        "default": false,
-                        "description": "Включить количество FAQ в каждой категории",
-                        "name": "withCounts",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "categories": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "string"
-                                    }
-                                },
-                                "categoryCounts": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "integer",
-                                        "format": "int64"
-                                    }
-                                },
-                                "message": {
-                                    "type": "string"
-                                },
-                                "success": {
-                                    "type": "boolean"
-                                },
-                                "timestamp": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/tax-priority-api_src_presentation_models.ErrorResponse"
                         }
@@ -1430,6 +1474,39 @@ const docTemplate = `{
                 "count": {
                     "type": "integer",
                     "example": 42
+                }
+            }
+        },
+        "tax-priority-api_src_presentation_models.CreateFAQRequest": {
+            "type": "object",
+            "required": [
+                "answer",
+                "category",
+                "question"
+            ],
+            "properties": {
+                "answer": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "minLength": 10,
+                    "example": "Для подачи налоговой декларации необходимо..."
+                },
+                "category": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "налоги"
+                },
+                "priority": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 0,
+                    "example": 50
+                },
+                "question": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "minLength": 10,
+                    "example": "Как подать налоговую декларацию?"
                 }
             }
         },

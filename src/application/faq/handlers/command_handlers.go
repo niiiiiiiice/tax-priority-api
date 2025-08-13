@@ -11,6 +11,7 @@ type FAQCommandHandlers struct {
 	BulkDelete     *commands.BulkDeleteFAQCommandHandler
 	Deactivate     *commands.DeactivateFAQCommandHandler
 	Delete         *commands.DeleteFAQCommandHandler
+	Create         *commands.CreateFAQCommandHandler
 	Update         *commands.UpdateFAQCommandHandler
 	UpdateCategory *commands.UpdateFAQCategoryCommandHandler
 	UpdatePriority *commands.UpdateFAQPriorityCommandHandler
@@ -22,6 +23,7 @@ func NewFAQCommandHandlers(repo repositories.CachedFAQRepository, notificationSe
 		BulkDelete:     commands.NewBulkDeleteFAQCommandHandler(repo, notificationService),
 		Deactivate:     commands.NewDeactivateFAQCommandHandler(repo, notificationService),
 		Delete:         commands.NewDeleteFAQCommandHandler(repo, notificationService),
+		Create:         commands.NewCreateFAQCommandHandler(repo, notificationService),
 		Update:         commands.NewUpdateFAQCommandHandler(repo, notificationService),
 		UpdateCategory: commands.NewUpdateFAQCategoryCommandHandler(repo, notificationService),
 		UpdatePriority: commands.NewUpdateFAQPriorityCommandHandler(repo, notificationService),

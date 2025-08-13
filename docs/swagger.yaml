@@ -245,6 +245,32 @@ definitions:
         example: 42
         type: integer
     type: object
+  tax-priority-api_src_presentation_models.CreateFAQRequest:
+    properties:
+      answer:
+        example: Для подачи налоговой декларации необходимо...
+        maxLength: 2000
+        minLength: 10
+        type: string
+      category:
+        example: налоги
+        maxLength: 100
+        type: string
+      priority:
+        example: 50
+        maximum: 100
+        minimum: 0
+        type: integer
+      question:
+        example: Как подать налоговую декларацию?
+        maxLength: 500
+        minLength: 10
+        type: string
+    required:
+    - answer
+    - category
+    - question
+    type: object
   tax-priority-api_src_presentation_models.ErrorResponse:
     properties:
       error:
@@ -364,7 +390,92 @@ info:
   title: Tax Priority API
   version: "1.0"
 paths:
-  /api/faq/{id}:
+  /api/faqs:
+    get:
+      description: Возвращает список FAQ с пагинацией и фильтрацией
+      parameters:
+      - default: 10
+        description: Лимит записей
+        in: query
+        name: _limit
+        type: integer
+      - default: 0
+        description: Смещение
+        in: query
+        name: _offset
+        type: integer
+      - default: createdAt
+        description: Поле сортировки
+        in: query
+        name: _sort
+        type: string
+      - default: desc
+        description: Порядок сортировки
+        enum:
+        - asc
+        - desc
+        in: query
+        name: _order
+        type: string
+      - description: Фильтр по категории
+        in: query
+        name: category
+        type: string
+      - default: true
+        description: Фильтр по активности
+        in: query
+        name: isActive
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.PaginatedFAQResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
+      security:
+      - OAuth2AccessCode: []
+      summary: Получить список FAQ
+      tags:
+      - FAQ
+    post:
+      consumes:
+      - application/json
+      description: Создает новую запись FAQ
+      parameters:
+      - description: Данные для создания FAQ
+        in: body
+        name: faq
+        required: true
+        schema:
+          $ref: '#/definitions/tax-priority-api_src_presentation_models.CreateFAQRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CommandResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
+      summary: Создать FAQ
+      tags:
+      - FAQ
+  /api/faqs/{id}:
     delete:
       description: Удаляет FAQ по ID
       parameters:
@@ -455,7 +566,7 @@ paths:
       summary: Обновить FAQ
       tags:
       - FAQ
-  /api/faq/{id}/activate:
+  /api/faqs/{id}/activate:
     patch:
       description: Активирует FAQ по ID
       parameters:
@@ -486,7 +597,7 @@ paths:
       summary: Активировать FAQ
       tags:
       - FAQ
-  /api/faq/{id}/deactivate:
+  /api/faqs/{id}/deactivate:
     patch:
       description: Деактивирует FAQ по ID
       parameters:
@@ -517,7 +628,7 @@ paths:
       summary: Деактивировать FAQ
       tags:
       - FAQ
-  /api/faq/{id}/priority:
+  /api/faqs/{id}/priority:
     patch:
       consumes:
       - application/json
@@ -556,7 +667,7 @@ paths:
       summary: Обновить приоритет FAQ
       tags:
       - FAQ
-  /api/faq/batch:
+  /api/faqs/batch:
     post:
       consumes:
       - application/json
@@ -588,7 +699,7 @@ paths:
       summary: Получить FAQ по списку ID
       tags:
       - FAQ
-  /api/faq/bulk-delete:
+  /api/faqs/bulk-delete:
     delete:
       consumes:
       - application/json
@@ -616,88 +727,6 @@ paths:
           schema:
             $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Массовое удаление FAQ
-      tags:
-      - FAQ
-  /api/faq/count:
-    get:
-      description: Возвращает общее количество FAQ
-      parameters:
-      - description: Фильтр по категории
-        in: query
-        name: category
-        type: string
-      - description: Фильтр по активности
-        in: query
-        name: isActive
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.CountResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-      summary: Получить количество FAQ
-      tags:
-      - FAQ
-  /api/faqs:
-    get:
-      description: Возвращает список FAQ с пагинацией и фильтрацией
-      parameters:
-      - default: 10
-        description: Лимит записей
-        in: query
-        name: _limit
-        type: integer
-      - default: 0
-        description: Смещение
-        in: query
-        name: _offset
-        type: integer
-      - default: createdAt
-        description: Поле сортировки
-        in: query
-        name: _sort
-        type: string
-      - default: desc
-        description: Порядок сортировки
-        enum:
-        - asc
-        - desc
-        in: query
-        name: _order
-        type: string
-      - description: Фильтр по категории
-        in: query
-        name: category
-        type: string
-      - default: true
-        description: Фильтр по активности
-        in: query
-        name: isActive
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.PaginatedFAQResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
-      security:
-      - OAuth2AccessCode: []
-      summary: Получить список FAQ
       tags:
       - FAQ
   /api/faqs/categories:
@@ -741,6 +770,32 @@ paths:
           schema:
             $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
       summary: Получить список категорий FAQ
+      tags:
+      - FAQ
+  /api/faqs/count:
+    get:
+      description: Возвращает общее количество FAQ
+      parameters:
+      - description: Фильтр по категории
+        in: query
+        name: category
+        type: string
+      - description: Фильтр по активности
+        in: query
+        name: isActive
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.CountResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/tax-priority-api_src_presentation_models.ErrorResponse'
+      summary: Получить количество FAQ
       tags:
       - FAQ
   /testimonials:

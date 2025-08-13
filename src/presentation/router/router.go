@@ -31,7 +31,7 @@ func SetupRouter() *gin.Engine {
 	}))
 
 	middlewares.StartJWKSRefresh()
-	router.Use(middlewares.AuthMiddleware())
+	//router.Use(middlewares.AuthMiddleware())
 
 	// Подключение к базе данных
 	db, err := persistence.Connect(persistence.NewDatabaseConfig())

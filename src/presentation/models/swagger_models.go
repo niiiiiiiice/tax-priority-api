@@ -29,6 +29,7 @@ type UpdateFAQRequest struct {
 	Answer   string `json:"answer" validate:"required,min=10,max=2000" example:"Для подачи налоговой декларации необходимо..."`
 	Category string `json:"category" validate:"required,max=100" example:"налоги"`
 	Priority int    `json:"priority" validate:"min=0,max=100" example:"50"`
+	IsActive bool   `json:"isActive" example:"true"`
 }
 
 // UpdateFAQPriorityRequest модель для обновления приоритета FAQ

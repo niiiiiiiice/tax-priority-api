@@ -35,6 +35,7 @@ func (h *CreateFAQCommandHandler) HandleCreateFAQ(ctx context.Context, cmd Creat
 		cmd.Question,
 		cmd.Answer,
 		cmd.Category,
+		cmd.Priority,
 	)
 
 	if err != nil {

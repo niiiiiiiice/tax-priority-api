@@ -53,13 +53,13 @@ func (f *FAQ) SetUpdatedAt(t time.Time) {
 // Бизнес-логика
 
 // NewFAQ - создает новую FAQ сущность
-func NewFAQ(question, answer, category string) (*FAQ, error) {
+func NewFAQ(question, answer, category string, priority int) (*FAQ, error) {
 	faq := &FAQ{
 		Question:  strings.TrimSpace(question),
 		Answer:    strings.TrimSpace(answer),
 		Category:  strings.TrimSpace(category),
 		IsActive:  true,
-		Priority:  0,
+		Priority:  priority,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
